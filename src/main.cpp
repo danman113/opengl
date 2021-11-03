@@ -85,5 +85,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
+    std::cout << "New size: " << width << " x " << height << std::endl;
     glViewport(0, 0, width, height);
 }
