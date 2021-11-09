@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <algorithm>
 #include <unordered_set>
 using std::string;
 using std::cout;
@@ -24,10 +25,13 @@ public:
     GLFWwindow* window;
     unordered_set<int> keyPressed;
     unordered_set<int> keyReleased;
+    unordered_set<int> mousePressed;
+    unordered_set<int> mouseReleased;
+    double mouseX;
+    double mouseY;
 
-    Window(string windowName, unsigned int w, unsigned int h): Name(windowName), Width(w), Height(h) {
+    Window(string windowName, unsigned int w, unsigned int h) : Name(windowName), Width(w), Height(h) {
         id = windowsCreated++;
-        windowsOpen++;
         if (!initialized) {
             glfwInit();
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -44,11 +48,14 @@ public:
             if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
                 cout << "Failed to initialize GLAD" << endl;
                 return;
-            } else {
+            }
+            else {
                 cout << "Initialized glad" << endl;
             }
-            initialized = true;
         }
+
+        initialized = true;
+        windowsOpen++;
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
             Window* self = (Window*)glfwGetWindowUserPointer(window);
@@ -66,20 +73,32 @@ public:
             if (action == GLFW_RELEASE) {
                 self->keyReleased.insert(key);
                 self->keyPressed.erase(key);
-            } else if (action == GLFW_PRESS) {
+            }
+            else if (action == GLFW_PRESS) {
                 self->keyPressed.insert(key);
             }
             self->onKeyPressed(key, scancode, action, mods);
         });
+        glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods) {
+            Window* self = (Window*)glfwGetWindowUserPointer(window);
+            if (action == GLFW_RELEASE) {
+                self->mouseReleased.insert(button);
+                self->mousePressed.erase(button);
+            }
+            else if (action == GLFW_PRESS) {
+                self->mousePressed.insert(button);
+            }
+        });
     }
     ~Window() {
-        glfwDestroyWindow(window);
+        if (window != NULL)
+            glfwDestroyWindow(window);
     }
 
     static void runWindows(std::vector<shared_ptr<Window>> windows) {
-        while(windowsOpen > 0) {
-            for (auto& window: windows) {
-                if (!glfwWindowShouldClose(window->window)) {
+        while (windowsOpen > 0) {
+            for (auto& window : windows) {
+                if (window->window != nullptr && !glfwWindowShouldClose(window->window)) {
                     window->makeActive();
                     window->run();
                 }
@@ -90,6 +109,7 @@ public:
 
     virtual void run() {
         update(window);
+        glfwGetCursorPos(window, &mouseX, &mouseY);
         draw();
         clearReleased();
         glfwSwapBuffers(window);
@@ -107,11 +127,23 @@ public:
         return keyReleased.find(key) != keyReleased.end();
     }
 
+    virtual bool getMousePressed(int button) {
+        return mousePressed.find(button) != mousePressed.end();
+    }
+
+    virtual bool getMouseDown(int button) {
+        return glfwGetMouseButton(window, button) == GLFW_PRESS;
+    }
+
+    virtual bool getMouseReleased(int button) {
+        return mouseReleased.find(button) != mouseReleased.end();
+    }
+
     virtual void onKeyPressed(int key, int scancode, int action, int mods) { };
 
     virtual void draw() = 0;
 
-    virtual void update(GLFWwindow *window) = 0;
+    virtual void update(GLFWwindow* window) = 0;
 
     virtual void onClose() = 0;
 
@@ -128,40 +160,46 @@ public:
 
     virtual void makeActive() {
         activeWindow = id;
-        glfwMakeContextCurrent(window);
+        if (window != NULL)
+            glfwMakeContextCurrent(window);
     }
 private:
     void clearReleased() {
         keyReleased.clear();
         keyPressed.clear();
+        mousePressed.clear();
+        mouseReleased.clear();
     }
 };
 
 class DefaultWindow : public Window {
 public:
-    DefaultWindow(string windowName, unsigned int w, unsigned int h): Window(windowName, w, h) {};
+    DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {};
     virtual void draw() {
-        float red = 0.2;
-        float redVelocity = 0.001f;    
-
-        if (red + redVelocity > 1.0f || red + redVelocity < 0.0f)
-            redVelocity = -redVelocity;
-        red = std::clamp(red + redVelocity, 0.0f, 1.0f);
-        glClearColor(red, 0.3f, 0.3f, 1.0f);
+        float red = mouseX / Width;
+        glClearColor(red, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    virtual void update(GLFWwindow *window) {
-        if(getKeyPressed(GLFW_KEY_W)) {
+    virtual void update(GLFWwindow* window) {
+        if (getKeyDown(GLFW_KEY_W)) {
             cout << "Forward!" << id << endl;
         }
 
-        if(getKeyReleased(GLFW_KEY_R)) {
+        if (getKeyReleased(GLFW_KEY_R)) {
             cout << "Reload" << id << endl;
         }
-        if(getKeyPressed(GLFW_KEY_ESCAPE)) {
+        if (getKeyPressed(GLFW_KEY_ESCAPE)) {
             cout << "killing window" << id << endl;
             closeWindow();
+        }
+
+        if (getMouseReleased(GLFW_MOUSE_BUTTON_1)) {
+            cout << "Click!" << endl;
+        }
+
+        if (getMouseDown(GLFW_MOUSE_BUTTON_2)) {
+            cout << "Right drag!" << endl;
         }
     }
 
