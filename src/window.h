@@ -4,8 +4,12 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-#include <unordered_map>
+#include <unordered_set>
 using std::string;
+using std::cout;
+using std::endl;
+using std::shared_ptr;
+using std::unordered_set;
 
 class Window {
     static inline int windowsOpen = 0;
@@ -18,12 +22,12 @@ public:
     unsigned int Width;
     unsigned int Height;
     GLFWwindow* window;
+    unordered_set<int> keyPressed;
+    unordered_set<int> keyReleased;
 
-    Window() = delete;
     Window(string windowName, unsigned int w, unsigned int h): Name(windowName), Width(w), Height(h) {
         id = windowsCreated++;
         windowsOpen++;
-        std::cout << "Creating window " << id << std::endl;
         if (!initialized) {
             glfwInit();
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -32,16 +36,16 @@ public:
         }
         window = glfwCreateWindow(Width, Height, Name.c_str(), NULL, NULL);
         if (window == NULL) {
-            std::cout << "Failed to create GLFW window" << std::endl;
+            cout << "Failed to create GLFW window" << endl;
             return;
         }
         if (!initialized) {
-            if (!getActive()) makeActive();
+            glfwMakeContextCurrent(window);
             if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-                std::cout << "Failed to initialize GLAD" << std::endl;
+                cout << "Failed to initialize GLAD" << endl;
                 return;
             } else {
-                std::cout << "Initialized glad" << std::endl;
+                cout << "Initialized glad" << endl;
             }
             initialized = true;
         }
@@ -57,11 +61,23 @@ public:
             self->closeWindow();
             self->onClose();
         });
+        glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+            Window* self = (Window*)glfwGetWindowUserPointer(window);
+            if (action == GLFW_RELEASE) {
+                self->keyReleased.insert(key);
+                self->keyPressed.erase(key);
+            } else if (action == GLFW_PRESS) {
+                self->keyPressed.insert(key);
+            }
+            self->onKeyPressed(key, scancode, action, mods);
+        });
+    }
+    ~Window() {
+        glfwDestroyWindow(window);
     }
 
-    static void runWindows(std::vector<std::shared_ptr<Window>>& windows) {
+    static void runWindows(std::vector<shared_ptr<Window>> windows) {
         while(windowsOpen > 0) {
-            std::cout << windowsOpen << std::endl;
             for (auto& window: windows) {
                 if (!glfwWindowShouldClose(window->window)) {
                     window->makeActive();
@@ -75,8 +91,23 @@ public:
     virtual void run() {
         update(window);
         draw();
+        clearReleased();
         glfwSwapBuffers(window);
     }
+
+    virtual bool getKeyPressed(int key) {
+        return keyPressed.find(key) != keyPressed.end();
+    }
+
+    virtual bool getKeyDown(int key) {
+        return glfwGetKey(window, key) == GLFW_PRESS;
+    }
+
+    virtual bool getKeyReleased(int key) {
+        return keyReleased.find(key) != keyReleased.end();
+    }
+
+    virtual void onKeyPressed(int key, int scancode, int action, int mods) { };
 
     virtual void draw() = 0;
 
@@ -85,8 +116,6 @@ public:
     virtual void onClose() = 0;
 
     virtual void onResize(GLFWwindow* window, int w, int h) = 0;
-
-protected:
 
     virtual void closeWindow() {
         glfwSetWindowShouldClose(window, true);
@@ -100,6 +129,11 @@ protected:
     virtual void makeActive() {
         activeWindow = id;
         glfwMakeContextCurrent(window);
+    }
+private:
+    void clearReleased() {
+        keyReleased.clear();
+        keyPressed.clear();
     }
 };
 
@@ -118,18 +152,25 @@ public:
     }
 
     virtual void update(GLFWwindow *window) {
-        if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-            std::cout << "killing window" << id << std::endl;
+        if(getKeyPressed(GLFW_KEY_W)) {
+            cout << "Forward!" << id << endl;
+        }
+
+        if(getKeyReleased(GLFW_KEY_R)) {
+            cout << "Reload" << id << endl;
+        }
+        if(getKeyPressed(GLFW_KEY_ESCAPE)) {
+            cout << "killing window" << id << endl;
             closeWindow();
         }
     }
 
     virtual void onClose() {
-        std::cout << "Attempting to close window " << id << std::endl;
+        cout << "Attempting to close window " << id << endl;
     }
 
     virtual void onResize(GLFWwindow* window, int w, int h) {
-        std::cout << "New size: " << Width << " x " << Height << std::endl;
+        cout << "New size: " << Width << " x " << Height << endl;
         glViewport(0, 0, Width, Height);
     }
 };

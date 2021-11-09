@@ -15,9 +15,9 @@ int main()
 {
     std::cout << "hello world" << std::endl;
 
-    DefaultWindow w {"Hello world", SCR_WIDTH, SCR_HEIGHT};
+    std::shared_ptr<DefaultWindow> window = std::make_shared<DefaultWindow>("Hello world", SCR_WIDTH, SCR_HEIGHT);
 
-    std::vector<std::shared_ptr<Window>> windows {std::make_shared<DefaultWindow>(w)};
+    std::vector<std::shared_ptr<Window>> windows {window};
 
     Window::runWindows(windows);
 
