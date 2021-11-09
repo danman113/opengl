@@ -11,6 +11,7 @@ add_subdirectory(deps/glfw)
 add_subdirectory(deps/glad)
 add_executable(opengl
 	src/main.cpp
+	src/window.cpp
 )
 target_link_libraries(opengl PUBLIC glfw glad)
 
