@@ -6,6 +6,7 @@
 #include <memory>
 #include <algorithm>
 #include <unordered_set>
+#include "renderer.h"
 using std::string;
 using std::cout;
 using std::endl;
@@ -174,11 +175,41 @@ private:
 
 class DefaultWindow : public Window {
 public:
-    DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {};
+    std::unique_ptr<Mesh> exampleMesh;
+    DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {;
+        exampleMesh = std::make_unique<Mesh>(
+            std::vector<float> {
+                -0.5f, -0.5f, 0.0f,
+                0.5f, -0.5f, 0.0f,
+                0.0f,  0.5f, 0.0f
+            },
+            std::make_unique<ShaderProgram>(
+                std::make_unique<Shader>(
+                    "#version 330 core\n"
+                    "layout (location = 0) in vec3 aPos;\n"
+                    "void main()\n"
+                    "{\n"
+                    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+                    "}\0",
+                    GL_VERTEX_SHADER
+                ),
+                std::make_unique<Shader>(
+                    "#version 330 core\n"
+                    "out vec4 FragColor;\n"
+                    "void main()\n"
+                    "{\n"
+                    "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+                    "}\0",
+                    GL_FRAGMENT_SHADER
+                )
+            )
+        );
+    };
     virtual void draw() {
         float red = mouseX / Width;
         glClearColor(red, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+        exampleMesh->draw();
     }
 
     virtual void update(GLFWwindow* window) {
