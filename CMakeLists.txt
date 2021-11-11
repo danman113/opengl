@@ -13,7 +13,10 @@ add_executable(opengl
 	src/main.cpp
 	src/window.cpp
 	src/renderer.cpp
+	src/fs.cpp
 )
+
+file(COPY resources DESTINATION .)
 target_link_libraries(opengl PUBLIC glfw glad)
 
 get_target_property(OUT opengl LINK_LIBRARIES)

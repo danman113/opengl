@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "window.h"
+#include "fs.h"
 
 // settings
 const unsigned int SCR_WIDTH = 800;

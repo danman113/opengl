@@ -6,14 +6,15 @@
 #define OPENGL_ERROR_BUFFER_SIZE 255
 
 struct Shader {
-    const char* Source;
+    std::string Source;
     unsigned int shaderId;
     unsigned int ShaderType;
     char errorBuffer[OPENGL_ERROR_BUFFER_SIZE];
-    Shader(const char* source, unsigned int shaderType): Source(source), ShaderType(shaderType) {
+    Shader(std::string source, unsigned int shaderType): Source(source), ShaderType(shaderType) {
         std::cout << "Constructing " << shaderType <<  " shader" << std::endl;
         shaderId = glCreateShader(ShaderType);
-        glShaderSource(shaderId, 1, &Source, NULL);
+        const char * c = Source.c_str();
+        glShaderSource(shaderId, 1, &c, NULL);
         glCompileShader(shaderId);
         int success;
         glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
