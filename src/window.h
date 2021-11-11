@@ -109,7 +109,7 @@ public:
         }
     }
 
-    virtual void run() {
+    void run() {
         update(window);
         glfwGetCursorPos(window, &mouseX, &mouseY);
         draw();
@@ -117,27 +117,27 @@ public:
         glfwSwapBuffers(window);
     }
 
-    virtual bool getKeyPressed(int key) {
+    bool getKeyPressed(int key) {
         return keyPressed.find(key) != keyPressed.end();
     }
 
-    virtual bool getKeyDown(int key) {
+    bool getKeyDown(int key) {
         return glfwGetKey(window, key) == GLFW_PRESS;
     }
 
-    virtual bool getKeyReleased(int key) {
+    bool getKeyReleased(int key) {
         return keyReleased.find(key) != keyReleased.end();
     }
 
-    virtual bool getMousePressed(int button) {
+    bool getMousePressed(int button) {
         return mousePressed.find(button) != mousePressed.end();
     }
 
-    virtual bool getMouseDown(int button) {
+    bool getMouseDown(int button) {
         return glfwGetMouseButton(window, button) == GLFW_PRESS;
     }
 
-    virtual bool getMouseReleased(int button) {
+    bool getMouseReleased(int button) {
         return mouseReleased.find(button) != mouseReleased.end();
     }
 
@@ -151,16 +151,16 @@ public:
 
     virtual void onResize(GLFWwindow* window, int w, int h) = 0;
 
-    virtual void closeWindow() {
+    void closeWindow() {
         glfwSetWindowShouldClose(window, true);
         windowsOpen--;
     }
 
-    virtual bool getActive() {
+    bool getActive() {
         return id == activeWindow;
     }
 
-    virtual void makeActive() {
+    void makeActive() {
         activeWindow = id;
         if (window != NULL)
             glfwMakeContextCurrent(window);
@@ -180,9 +180,13 @@ public:
     DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {;
         exampleMesh = std::make_unique<Mesh>(
             std::vector<float> {
-                -0.5f, -0.5f, 0.0f,
-                0.5f, -0.5f, 0.0f,
-                0.0f,  0.5f, 0.0f
+                0.5f,  0.5f, 0.0f,  // top right
+                0.5f, -0.5f, 0.0f,  // bottom right
+                -0.5f,  0.5f, 0.0f,  // top left 
+                // second triangle
+                0.5f, -0.5f, 0.0f,  // bottom right
+                -0.5f, -0.5f, 0.0f,  // bottom left
+                -0.5f,  0.5f, 0.0f   // top left
             },
             std::make_unique<ShaderProgram>(
                 std::make_unique<Shader>(
@@ -198,8 +202,9 @@ public:
     };
     virtual void draw() {
         float red = mouseX / Width;
-        glClearColor(red, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.1f, 0.4f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+        exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5);
         exampleMesh->draw();
     }
 

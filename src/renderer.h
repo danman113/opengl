@@ -47,18 +47,42 @@ struct ShaderProgram {
             std::cout << "Program compilation error: " << errorBuffer << std::endl;
         }
     }
+
+    void setUniform1f(const char* uniformLoc, float arg1) {
+        int location = glGetUniformLocation(programId, uniformLoc);
+        glUniform1f(location, arg1);
+    }
+
+    void setUniform2f(const char* uniformLoc, float arg1, float arg2) {
+        int location = glGetUniformLocation(programId, uniformLoc);
+        glUniform2f(location, arg1, arg2);
+    }
+
+    void setUniform3f(const char* uniformLoc, float arg1, float arg2, float arg3) {
+        int location = glGetUniformLocation(programId, uniformLoc);
+        glUniform3f(location, arg1, arg2, arg3);
+    }
+
+    void setUniform4f(const char* uniformLoc, float arg1, float arg2, float arg3, float arg4) {
+        int location = glGetUniformLocation(programId, uniformLoc);
+        glUniform4f(location, arg1, arg2, arg3, arg4);
+    }
+
+    ShaderProgram* use() {
+        glUseProgram(programId);
+        return this;
+    }
     ~ShaderProgram() {
         std::cout << "Deleting program" << programId << std::endl;
         glDeleteProgram(programId);
     }
 };
 
-
-
 struct Mesh {
     std::vector<float> Positions;
     unsigned int VBO;
     unsigned int VAO;
+    static const int ATTRIB_SIZE = 3;
     std::unique_ptr<ShaderProgram> shader;
     Mesh(std::vector<float> geometry, std::unique_ptr<ShaderProgram> s): Positions(geometry), shader(std::move(s)) {
         std::cout << "Constructing mesh" << std::endl;
@@ -66,12 +90,10 @@ struct Mesh {
         glGenBuffers(1, &VBO);
         glBindVertexArray(VAO);
 
-        
-        std::cout << "Building mesh of size " << Positions.size() << "(" << sizeof(float) * Positions.size() << ")" << std::endl;
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(float) * Positions.size(), Positions.data(), GL_STATIC_DRAW);
         
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, (Positions.size() / 3) * sizeof(float), (void*) 0);
+        glVertexAttribPointer(0, ATTRIB_SIZE, GL_FLOAT, GL_FALSE,  ATTRIB_SIZE * sizeof(float), (void*) 0);
         glEnableVertexAttribArray(0);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0); 
@@ -79,9 +101,9 @@ struct Mesh {
     }
 
     virtual void draw() {
-        glUseProgram(shader->programId);
+        shader->use();
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, Positions.size() / ATTRIB_SIZE);
     }
     ~Mesh() {
         glDeleteVertexArrays(1, &VAO);
