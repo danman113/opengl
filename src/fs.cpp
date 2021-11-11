@@ -8,7 +8,7 @@ std::string FS::readFile(filesystem::path path) {
         outputBuffer << file.rdbuf();
         return outputBuffer.str();
     }
-    throw runtime_error(std::string(path.c_str()) + " could not be read");
+    throw runtime_error(path.string() + " could not be read");
 }
 
 void FS::readWholeDirectory(std::filesystem::path p) {
