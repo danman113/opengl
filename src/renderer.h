@@ -3,6 +3,8 @@
 #include <memory>
 #include <iostream>
 #include <glad/glad.h>
+#include "texture.h"
+
 #define OPENGL_ERROR_BUFFER_SIZE 255
 
 struct Shader {
@@ -13,7 +15,7 @@ struct Shader {
     Shader(std::string source, unsigned int shaderType): Source(source), ShaderType(shaderType) {
         std::cout << "Constructing " << shaderType <<  " shader" << std::endl;
         shaderId = glCreateShader(ShaderType);
-        const char * c = Source.c_str();
+        const char* c = Source.c_str();
         glShaderSource(shaderId, 1, &c, NULL);
         glCompileShader(shaderId);
         int success;
@@ -111,6 +113,39 @@ struct Mesh {
     }
 };
 
+struct TexturedMesh : public Mesh {
+    Texture* texture;
+    std::vector<float> UV;
+    unsigned int textureVBO;
+    unsigned int textureVAO;
+    static const int UV_SIZE = 2;
+    TexturedMesh(std::vector<float> geometry, std::vector<float> uv, std::unique_ptr<ShaderProgram> s, Texture* t):
+        Mesh(geometry, std::move(s)), texture(t), UV(uv) {
+            texture->Init();
+            glGenVertexArrays(1, &textureVAO);
+            glGenBuffers(1, &textureVBO);
+            glBindVertexArray(VAO);
+
+            glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * UV.size(), UV.data(), GL_STATIC_DRAW);
+
+            glVertexAttribPointer(1, UV_SIZE, GL_FLOAT, GL_FALSE, sizeof(float) * UV_SIZE, (void*) 0);
+            glEnableVertexAttribArray(1);
+
+            glBindBuffer(GL_ARRAY_BUFFER, 1);
+            glBindVertexArray(1);
+        }
+    virtual void draw() {
+        shader->use();
+        glBindTexture(GL_TEXTURE_2D, texture->textureId);
+        glBindVertexArray(textureVAO);
+        Mesh::draw();
+    }
+
+    ~TexturedMesh() {
+        delete texture;
+    }
+};
 class Renderer {
     
 };

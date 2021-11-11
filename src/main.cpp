@@ -7,6 +7,7 @@
 
 #include "window.h"
 #include "fs.h"
+#include "texture.h"
 
 // settings
 const unsigned int SCR_WIDTH = 800;

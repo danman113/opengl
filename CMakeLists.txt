@@ -9,16 +9,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # set(EXTERNAL_LIB_HEADERS )
 add_subdirectory(deps/glfw)
 add_subdirectory(deps/glad)
-add_library(stb_image deps/stb/stb_image.h)
 add_executable(opengl
 	src/main.cpp
 	src/window.cpp
 	src/renderer.cpp
 	src/fs.cpp
+	src/texture.cpp
 )
 
+target_include_directories(opengl PUBLIC deps/stb/)
+
 file(COPY resources DESTINATION .)
-target_link_libraries(opengl PUBLIC glfw glad stb_image)
+target_link_libraries(opengl PUBLIC glfw glad)
 
 get_target_property(OUT opengl LINK_LIBRARIES)
 message(STATUS ${OUT})

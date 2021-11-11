@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include "renderer.h"
 #include "fs.h"
+#include "texture.h"
+
 using std::string;
 using std::cout;
 using std::endl;
@@ -177,7 +179,40 @@ private:
 class DefaultWindow : public Window {
 public:
     std::unique_ptr<Mesh> exampleMesh;
-    DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {;
+    TexturedMesh* TextureMesh;
+    DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {
+        TextureMesh = new TexturedMesh(
+            std::vector<float> {
+                0.5f,  0.5f, 0.0f,  // top right
+                0.5f, -0.5f, 0.0f,  // bottom right
+                -0.5f,  0.5f, 0.0f,  // top left 
+                // second triangle
+                0.5f, -0.5f, 0.0f,  // bottom right
+                -0.5f, -0.5f, 0.0f,  // bottom left
+                -0.5f,  0.5f, 0.0f   // top left
+            },
+            std::vector<float> {
+                1.0f, 1.0f, 
+                1.0f, 0.0f,
+                0.0f, 1.0f,
+                // second triangle
+                1.0f, 0.0f,
+                0.0f, 0.0f,   // bottom left
+                0.0f, 1.0f 
+            },
+            std::make_unique<ShaderProgram>(
+                std::make_unique<Shader>(
+                    FS::readFile("resources/shaders/image.vert"),
+                    GL_VERTEX_SHADER
+                ),
+                std::make_unique<Shader>(
+                    FS::readFile("resources/shaders/image.frag"),
+                    GL_FRAGMENT_SHADER
+                )
+            ),
+            new Texture("resources/images/wood.jpg")
+        );
+
         exampleMesh = std::make_unique<Mesh>(
             std::vector<float> {
                 0.5f,  0.5f, 0.0f,  // top right
@@ -190,11 +225,11 @@ public:
             },
             std::make_unique<ShaderProgram>(
                 std::make_unique<Shader>(
-                    FS::readFile("resources/triangle.vert"),
+                    FS::readFile("resources/shaders/triangle.vert"),
                     GL_VERTEX_SHADER
                 ),
                 std::make_unique<Shader>(
-                    FS::readFile("resources/triangle.frag"),
+                    FS::readFile("resources/shaders/triangle.frag"),
                     GL_FRAGMENT_SHADER
                 )
             )
@@ -204,8 +239,10 @@ public:
         float red = mouseX / Width;
         glClearColor(0.1f, 0.4f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5);
-        exampleMesh->draw();
+        // exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5);
+        // exampleMesh->draw();
+        TextureMesh->shader->use();
+        TextureMesh->draw();
     }
 
     virtual void update(GLFWwindow* window) {
