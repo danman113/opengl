@@ -15,6 +15,7 @@ add_executable(opengl
 	src/renderer.cpp
 	src/fs.cpp
 	src/texture.cpp
+	src/utils.cpp
 )
 
 target_include_directories(opengl PUBLIC deps/stb/)

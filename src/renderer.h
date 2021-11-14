@@ -50,24 +50,28 @@ struct ShaderProgram {
         }
     }
 
-    void setUniform1f(const char* uniformLoc, float arg1) {
+    ShaderProgram* setUniform1f(const char* uniformLoc, float arg1) {
         int location = glGetUniformLocation(programId, uniformLoc);
         glUniform1f(location, arg1);
+        return this;
     }
 
-    void setUniform2f(const char* uniformLoc, float arg1, float arg2) {
+    ShaderProgram* setUniform2f(const char* uniformLoc, float arg1, float arg2) {
         int location = glGetUniformLocation(programId, uniformLoc);
         glUniform2f(location, arg1, arg2);
+        return this;
     }
 
-    void setUniform3f(const char* uniformLoc, float arg1, float arg2, float arg3) {
+    ShaderProgram* setUniform3f(const char* uniformLoc, float arg1, float arg2, float arg3) {
         int location = glGetUniformLocation(programId, uniformLoc);
         glUniform3f(location, arg1, arg2, arg3);
+        return this;
     }
 
-    void setUniform4f(const char* uniformLoc, float arg1, float arg2, float arg3, float arg4) {
+    ShaderProgram* setUniform4f(const char* uniformLoc, float arg1, float arg2, float arg3, float arg4) {
         int location = glGetUniformLocation(programId, uniformLoc);
         glUniform4f(location, arg1, arg2, arg3, arg4);
+        return this;
     }
 
     ShaderProgram* use() {

@@ -4,8 +4,9 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-#include <algorithm>
+#include <cstdlib>
 #include <unordered_set>
+#include "utils.h"
 #include "renderer.h"
 #include "fs.h"
 #include "texture.h"
@@ -61,12 +62,22 @@ public:
         initialized = true;
         windowsOpen++;
         glfwSetWindowUserPointer(window, this);
-        glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
+        glfwSetWindowSizeCallback(window, [](GLFWwindow* window, int width, int height) {
             Window* self = (Window*)glfwGetWindowUserPointer(window);
             self->Width = width;
             self->Height = height;
+            // Do we need a resize handler? Will this ever *not* be the same as framebufferSizeCallback?
+        });
+
+        glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
+            Window* self = (Window*)glfwGetWindowUserPointer(window);
             self->onResize(window, width, height);
         });
+
+        // Do we need this?
+        // glfwSetWindowContentScaleCallback(window, [](GLFWwindow* window, float width, float height) {
+        //     Window* self = (Window*)glfwGetWindowUserPointer(window);
+        // });
         glfwSetWindowCloseCallback(window, [](GLFWwindow* window) {
             Window* self = (Window*)glfwGetWindowUserPointer(window);
             self->closeWindow();
@@ -197,7 +208,7 @@ public:
                 0.0f, 1.0f,
                 // second triangle
                 1.0f, 0.0f,
-                0.0f, 0.0f,   // bottom left
+                0.0f, 0.0f,
                 0.0f, 1.0f 
             },
             std::make_unique<ShaderProgram>(
@@ -239,9 +250,9 @@ public:
         float red = mouseX / Width;
         glClearColor(0.1f, 0.4f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        // exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5);
-        // exampleMesh->draw();
-        TextureMesh->shader->use();
+        exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5)->setUniform3f("position", -0.5, -0.5, 0.0);
+        exampleMesh->draw();
+        TextureMesh->shader->use()->setUniform3f("position", Math::map(mouseX, 0.0, Width, -1.0, 1.0), Math::map(mouseY, Height, 0.0, -1.0, 1.0), 0.0);
         TextureMesh->draw();
     }
 
@@ -272,7 +283,6 @@ public:
     }
 
     virtual void onResize(GLFWwindow* window, int w, int h) {
-        cout << "New size: " << Width << " x " << Height << endl;
-        glViewport(0, 0, Width, Height);
+        glViewport(0, 0, w, h);
     }
 };
