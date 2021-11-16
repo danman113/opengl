@@ -5,7 +5,11 @@
 #include <vector>
 #include <memory>
 #include <cstdlib>
+#include <cmath>
 #include <unordered_set>
+#include <glm/matrix.hpp>
+#include <glm/mat4x4.hpp> 
+#include <glm/gtc/matrix_transform.hpp>
 #include "utils.h"
 #include "renderer.h"
 #include "fs.h"
@@ -27,6 +31,8 @@ public:
     string Name;
     unsigned int Width;
     unsigned int Height;
+    unsigned int BufferWidth;
+    unsigned int BufferHeight;
     GLFWwindow* window;
     unordered_set<int> keyPressed;
     unordered_set<int> keyReleased;
@@ -71,6 +77,8 @@ public:
 
         glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
             Window* self = (Window*)glfwGetWindowUserPointer(window);
+            self->BufferWidth = width;
+            self->BufferHeight = height;
             self->onResize(window, width, height);
         });
 
@@ -162,7 +170,7 @@ public:
 
     virtual void onClose() = 0;
 
-    virtual void onResize(GLFWwindow* window, int w, int h) = 0;
+    virtual void onResize(GLFWwindow* window, int bufferWidth, int bufferHeight) = 0;
 
     void closeWindow() {
         glfwSetWindowShouldClose(window, true);
@@ -191,6 +199,8 @@ class DefaultWindow : public Window {
 public:
     std::unique_ptr<Mesh> exampleMesh;
     TexturedMesh* TextureMesh;
+    glm::mat4 example = glm::mat4(1.0);
+    glm::mat4 texture = glm::mat4(1.0);
     DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {
         TextureMesh = new TexturedMesh(
             std::vector<float> {
@@ -250,9 +260,13 @@ public:
         float red = mouseX / Width;
         glClearColor(0.1f, 0.4f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5)->setUniform3f("position", -0.5, -0.5, 0.0);
+        float time = glfwGetTime();
+        example = glm::scale(glm::identity<glm::mat4>(), glm::vec3 (std::sin(time), std::sin(time), 0.0));
+        exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5)->setUniformMat4("transform", example);
         exampleMesh->draw();
-        TextureMesh->shader->use()->setUniform3f("position", Math::map(mouseX, 0.0, Width, -1.0, 1.0), Math::map(mouseY, Height, 0.0, -1.0, 1.0), 0.0);
+        texture = glm::translate(glm::identity<glm::mat4>(), glm::vec3(Math::map(mouseX, 0.0, Width, -1.0, 1.0), Math::map(mouseY, Height, 0.0, -1.0, 1.0), 0.0));
+        texture = glm::rotate(texture, std::sin(time) * (3.1415927f), glm::vec3(0.0, 0.0, 1.0));
+        TextureMesh->shader->use()->setUniformMat4("transform", texture);
         TextureMesh->draw();
     }
 

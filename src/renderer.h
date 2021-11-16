@@ -3,6 +3,8 @@
 #include <memory>
 #include <iostream>
 #include <glad/glad.h>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "texture.h"
 
 #define OPENGL_ERROR_BUFFER_SIZE 255
@@ -71,6 +73,12 @@ struct ShaderProgram {
     ShaderProgram* setUniform4f(const char* uniformLoc, float arg1, float arg2, float arg3, float arg4) {
         int location = glGetUniformLocation(programId, uniformLoc);
         glUniform4f(location, arg1, arg2, arg3, arg4);
+        return this;
+    }
+
+    ShaderProgram* setUniformMat4(const char* uniformLoc, const glm::mat4& mat4) {
+        int location = glGetUniformLocation(programId, uniformLoc);
+        glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(mat4));
         return this;
     }
 
