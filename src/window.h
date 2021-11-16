@@ -10,6 +10,8 @@
 #include <glm/matrix.hpp>
 #include <glm/mat4x4.hpp> 
 #include <glm/gtc/matrix_transform.hpp>
+#include <math.h>
+
 #include "utils.h"
 #include "renderer.h"
 #include "fs.h"
@@ -262,11 +264,11 @@ public:
         glClear(GL_COLOR_BUFFER_BIT);
         float time = glfwGetTime();
         example = glm::scale(glm::identity<glm::mat4>(), glm::vec3 (std::sin(time), std::sin(time), 0.0));
-        exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5)->setUniformMat4("transform", example);
+        exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5)->setUniformMat4("model", example);
         exampleMesh->draw();
         texture = glm::translate(glm::identity<glm::mat4>(), glm::vec3(Math::map(mouseX, 0.0, Width, -1.0, 1.0), Math::map(mouseY, Height, 0.0, -1.0, 1.0), 0.0));
-        texture = glm::rotate(texture, std::sin(time) * (3.1415927f), glm::vec3(0.0, 0.0, 1.0));
-        TextureMesh->shader->use()->setUniformMat4("transform", texture);
+        texture = glm::rotate(texture, std::sin(time) * (3.415927f), glm::vec3(0.0, 0.0, 1.0));
+        TextureMesh->shader->use()->setUniformMat4("model", texture);
         TextureMesh->draw();
     }
 
