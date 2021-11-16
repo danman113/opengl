@@ -12,6 +12,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <math.h>
 
+#include "soloud.h"
+#include "soloud_wav.h"
+
 #include "utils.h"
 #include "renderer.h"
 #include "fs.h"
@@ -200,10 +203,17 @@ private:
 class DefaultWindow : public Window {
 public:
     std::unique_ptr<Mesh> exampleMesh;
+
+    SoLoud::Soloud soloud;
+    SoLoud::Wav sample;
     TexturedMesh* TextureMesh;
     glm::mat4 example = glm::mat4(1.0);
     glm::mat4 texture = glm::mat4(1.0);
     DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {
+        soloud.init();
+
+        sample.load("resources/sounds/pickupCoin.wav"); // Load a wave file
+
         TextureMesh = new TexturedMesh(
             std::vector<float> {
                 0.5f,  0.5f, 0.0f,  // top right
@@ -287,6 +297,7 @@ public:
 
         if (getMouseReleased(GLFW_MOUSE_BUTTON_1)) {
             cout << "Click!" << endl;
+            soloud.play(sample);
         }
 
         if (getMouseDown(GLFW_MOUSE_BUTTON_2)) {
