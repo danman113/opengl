@@ -10,7 +10,7 @@ struct Texture {
     int channels;
     unsigned int textureId;
 
-    Texture(std::filesystem::path path);
+    Texture(const std::filesystem::path& path);
 
     void Init();
 

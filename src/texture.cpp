@@ -14,13 +14,15 @@ void Texture::Init() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
-Texture::Texture(std::filesystem::path path) {
+Texture::Texture(const std::filesystem::path& path) {
     // Have to call string here to get it to work on windows.
-    const char* c = path.string().c_str();
+    auto str = path.string();
+    const char* c = str.c_str();
+    std::cout << "Loading image " << c << std::endl;
     data = stbi_load(c, &width, &height, &channels, 0);
     std::cout << "Texture" << width << " x " << height << "(" << &data << ")" << std::endl;
     if (!data)
-        std::cout << "failed to load image " << path << std::endl;
+        std::cout << "failed to load image " << c << std::endl;
     // std::cout << width << " x " << height << std::endl;
 }
 
