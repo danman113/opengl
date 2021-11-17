@@ -14,3 +14,4 @@ build.vscode
 .vscode
 .vs
 !.gitkeep
+*Zone.Identifier
