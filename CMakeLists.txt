@@ -18,13 +18,13 @@ add_executable(opengl
 	src/main.cpp
 	src/window.cpp
 	src/renderer.cpp
+	src/shader.cpp
 	src/fs.cpp
 	src/texture.cpp
 	src/utils.cpp
-)
+	src/resourceLoader.h)
 
 target_include_directories(opengl PUBLIC deps/stb/)
-target_include_directories(opengl PUBLIC deps/soloud/src/backend/miniaudio)
 target_include_directories(opengl PUBLIC deps/soloud/include)
 
 file(COPY resources DESTINATION .)

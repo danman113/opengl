@@ -3,6 +3,13 @@
 #include "stb_image.h"
 
 void Texture::Init() {
+
+    const char* pathStr = path.c_str();
+    std::cout << "Loading image " << pathStr << std::endl;
+    data = stbi_load(pathStr, &width, &height, &channels, 0);
+    std::cout << "Texture" << width << " x " << height << "(" << &data << ")" << std::endl;
+    if (!data)
+        std::cout << "failed to load image " << pathStr << std::endl;
     glGenTextures(1, &textureId);
     glBindTexture(GL_TEXTURE_2D, textureId);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -14,17 +21,11 @@ void Texture::Init() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
-Texture::Texture(const std::filesystem::path& path) {
-    // Have to call string here to get it to work on windows.
-    auto str = path.string();
-    const char* c = str.c_str();
-    std::cout << "Loading image " << c << std::endl;
-    data = stbi_load(c, &width, &height, &channels, 0);
-    std::cout << "Texture" << width << " x " << height << "(" << &data << ")" << std::endl;
-    if (!data)
-        std::cout << "failed to load image " << c << std::endl;
-    // std::cout << width << " x " << height << std::endl;
+void Texture::setActive() {
+    glActiveTexture(textureId);
 }
+
+Texture::Texture(const std::filesystem::path& p): path(p.string()) {}
 
 Texture::~Texture() {
     std::cout << "Deleting texture" << std::endl;

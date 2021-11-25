@@ -20,6 +20,8 @@
 #include "fs.h"
 #include "texture.h"
 
+#include "resourceLoader.h"
+
 using std::string;
 using std::cout;
 using std::endl;
@@ -50,9 +52,19 @@ public:
         id = windowsCreated++;
         if (!initialized) {
             glfwInit();
+            glfwSetErrorCallback([](int code, const char* msg) {
+                std::cout << "GLFW error code " << code << " \"" << msg << "\"" << std::endl;
+            });
+#ifdef USE_GL_ES
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+            // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+            // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
+#else
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
             glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
             glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#endif
         }
         window = glfwCreateWindow(Width, Height, Name.c_str(), NULL, NULL);
         if (window == NULL) {
@@ -64,9 +76,12 @@ public:
             if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
                 cout << "Failed to initialize GLAD" << endl;
                 return;
-            }
-            else {
+            } else {
                 cout << "Initialized glad" << endl;
+            }
+            if (!gladLoadGL()) {
+                std::cout << "Failed to initialize OpenGL context" << std::endl;
+                return;
             }
         }
 
@@ -204,18 +219,33 @@ class DefaultWindow : public Window {
 public:
     std::unique_ptr<Mesh> exampleMesh;
 
-    SoLoud::Soloud soloud;
+    std::shared_ptr<SoLoud::Soloud> soloud;
     SoLoud::Wav sample;
+    std::unique_ptr<SoundLoader> sl;
+    std::unique_ptr<ShaderLoader> shaderLoader;
     TexturedMesh* TextureMesh;
     glm::mat4 example = glm::mat4(1.0);
     glm::mat4 texture = glm::mat4(1.0);
     DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {
-        soloud.init();
+        shaderLoader = std::make_unique<ShaderLoader>();
+        soloud = std::make_unique<SoLoud::Soloud>();
+        soloud->init();
+        sl = std::make_unique<SoundLoader>(soloud);
+        sl->load({
+            {"resources/sounds/pickupCoin.wav", "coin"},
+            {"resources/sounds/bookFlip2.ogg", "bookflip"}
+        });
 
-        sample.load("resources/sounds/pickupCoin.wav"); // Load a wave file
+        shaderLoader->load({
+            {{"resources/shaders/image.vert", "resources/shaders/image.frag"}, "image"},
+            {{"resources/shaders/triangle.vert", "resources/shaders/triangle.frag"}, "triangle"}
+        });
 
+        auto imageShader = *(shaderLoader->get("image"));
+        auto triangleShader = *(shaderLoader->get("triangle"));
+        
         TextureMesh = new TexturedMesh(
-            std::vector<float> {
+            {
                 0.5f,  0.5f, 0.0f,  // top right
                 0.5f, -0.5f, 0.0f,  // bottom right
                 -0.5f,  0.5f, 0.0f,  // top left 
@@ -224,7 +254,7 @@ public:
                 -0.5f, -0.5f, 0.0f,  // bottom left
                 -0.5f,  0.5f, 0.0f   // top left
             },
-            std::vector<float> {
+            {
                 1.0f, 1.0f, 
                 1.0f, 0.0f,
                 0.0f, 1.0f,
@@ -233,16 +263,7 @@ public:
                 0.0f, 0.0f,
                 0.0f, 1.0f 
             },
-            std::make_unique<ShaderProgram>(
-                std::make_unique<Shader>(
-                    FS::readFile("resources/shaders/image.vert"),
-                    GL_VERTEX_SHADER
-                ),
-                std::make_unique<Shader>(
-                    FS::readFile("resources/shaders/image.frag"),
-                    GL_FRAGMENT_SHADER
-                )
-            ),
+            imageShader,
             new Texture("resources/images/wood.jpg")
         );
 
@@ -256,28 +277,21 @@ public:
                 -0.5f, -0.5f, 0.0f,  // bottom left
                 -0.5f,  0.5f, 0.0f   // top left
             },
-            std::make_unique<ShaderProgram>(
-                std::make_unique<Shader>(
-                    FS::readFile("resources/shaders/triangle.vert"),
-                    GL_VERTEX_SHADER
-                ),
-                std::make_unique<Shader>(
-                    FS::readFile("resources/shaders/triangle.frag"),
-                    GL_FRAGMENT_SHADER
-                )
-            )
+            triangleShader
         );
     };
     virtual void draw() {
-        float red = mouseX / Width;
+        float red = (float)mouseX / Width;
         glClearColor(0.1f, 0.4f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         float time = glfwGetTime();
         example = glm::scale(glm::identity<glm::mat4>(), glm::vec3 (std::sin(time), std::sin(time), 0.0));
         exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5)->setUniformMat4("model", example);
         exampleMesh->draw();
-        texture = glm::translate(glm::identity<glm::mat4>(), glm::vec3(Math::map(mouseX, 0.0, Width, -1.0, 1.0), Math::map(mouseY, Height, 0.0, -1.0, 1.0), 0.0));
-        texture = glm::rotate(texture, std::sin(time) * (3.415927f), glm::vec3(0.0, 0.0, 1.0));
+        texture = glm::translate(glm::identity<glm::mat4>(), glm::vec3(
+            Math::map(mouseX, 0.0f, Width, -1.0f, 1.0f), Math::map(mouseY, Height, 0.0f, -1.0f, 1.0f), 0.0f)
+        );
+        texture = glm::rotate(texture, std::sin(time) * (3.415927f), glm::vec3(0.0f, 0.0f, 1.0f));
         TextureMesh->shader->use()->setUniformMat4("model", texture);
         TextureMesh->draw();
     }
@@ -297,7 +311,18 @@ public:
 
         if (getMouseReleased(GLFW_MOUSE_BUTTON_1)) {
             cout << "Click!" << endl;
-            soloud.play(sample);
+            if (auto handle = sl->get("coin")) {
+                auto raw = (*handle).get();
+                soloud->play(*raw);
+            }
+        }
+
+        if (getMouseReleased(GLFW_MOUSE_BUTTON_2)) {
+            cout << "Clock!" << endl;
+            if (auto handle = sl->get("bookflip")) {
+                auto raw = (*handle).get();
+                soloud->play(*raw);
+            }
         }
 
         if (getMouseDown(GLFW_MOUSE_BUTTON_2)) {

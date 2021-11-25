@@ -8,11 +8,13 @@ struct Texture {
     int width;
     int height;
     int channels;
+    std::string path;
     unsigned int textureId;
 
     Texture(const std::filesystem::path& path);
 
     void Init();
+    void setActive();
 
     ~Texture();
 };
