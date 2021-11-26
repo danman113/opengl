@@ -19,6 +19,7 @@
 #include "renderer.h"
 #include "fs.h"
 #include "texture.h"
+#include "mesh.h"
 
 #include "resourceLoader.h"
 
@@ -223,11 +224,13 @@ public:
     SoLoud::Wav sample;
     std::unique_ptr<SoundLoader> sl;
     std::unique_ptr<ShaderLoader> shaderLoader;
+    std::unique_ptr<TextureLoader> textureLoader;
     TexturedMesh* TextureMesh;
     glm::mat4 example = glm::mat4(1.0);
     glm::mat4 texture = glm::mat4(1.0);
     DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {
         shaderLoader = std::make_unique<ShaderLoader>();
+        textureLoader = std::make_unique<TextureLoader>();
         soloud = std::make_unique<SoLoud::Soloud>();
         soloud->init();
         sl = std::make_unique<SoundLoader>(soloud);
@@ -241,8 +244,14 @@ public:
             {{"resources/shaders/triangle.vert", "resources/shaders/triangle.frag"}, "triangle"}
         });
 
+        textureLoader->load({
+            {"resources/images/wood.jpg", "wood"},
+            {"resources/images/bg_layer4.png", "bg"}
+        });
+
         auto imageShader = *(shaderLoader->get("image"));
         auto triangleShader = *(shaderLoader->get("triangle"));
+        auto woodTexture = *(textureLoader->get("bg"));
         
         TextureMesh = new TexturedMesh(
             {
@@ -264,7 +273,7 @@ public:
                 0.0f, 1.0f 
             },
             imageShader,
-            new Texture("resources/images/wood.jpg")
+            woodTexture
         );
 
         exampleMesh = std::make_unique<Mesh>(

@@ -8,11 +8,14 @@ void Texture::Init() {
     std::cout << "Loading image " << pathStr << std::endl;
     data = stbi_load(pathStr, &width, &height, &channels, 0);
     std::cout << "Texture" << width << " x " << height << "(" << &data << ")" << std::endl;
-    if (!data)
+    if (!data) {
         std::cout << "failed to load image " << pathStr << std::endl;
+        return;
+    }
     glGenTextures(1, &textureId);
     glBindTexture(GL_TEXTURE_2D, textureId);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    stbi_image_free(data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
@@ -28,7 +31,6 @@ void Texture::setActive() {
 Texture::Texture(const std::filesystem::path& p): path(p.string()) {}
 
 Texture::~Texture() {
-    std::cout << "Deleting texture" << std::endl;
-    stbi_image_free(data);
+    std::cout << "Deleting texture " << path << std::endl;
     glDeleteTextures(1, &textureId);
 }

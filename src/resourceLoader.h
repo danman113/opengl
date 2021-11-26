@@ -13,6 +13,7 @@
 
 #include "shader.h"
 #include "fs.h"
+#include "texture.h"
 
 
 using std::string;
@@ -60,6 +61,15 @@ class SoundLoader : public ResourceLoader<SoLoud::Wav> {
 	}
 public:
 	SoundLoader(shared_ptr<SoLoud::Soloud> soloudptr) : ResourceLoader(), soloud(soloudptr) {}
+};
+
+class TextureLoader : public ResourceLoader<Texture> {
+	shared_ptr<Texture> fetch(path p) override {
+		auto texture = std::make_shared<Texture>(p);
+		return texture;
+	}
+public:
+	TextureLoader() : ResourceLoader() {}
 };
 
 class ShaderLoader : public SharedResourceMap<ShaderProgram> {

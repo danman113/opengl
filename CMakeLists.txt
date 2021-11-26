@@ -21,6 +21,7 @@ add_executable(opengl
 	src/shader.cpp
 	src/fs.cpp
 	src/texture.cpp
+	src/mesh.cpp
 	src/utils.cpp
 	src/resourceLoader.h)
 
