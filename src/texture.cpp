@@ -2,8 +2,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-void Texture::Init() {
 
+void Texture::Init() {
+    stbi_set_flip_vertically_on_load(true);
     const char* pathStr = path.c_str();
     std::cout << "Loading image " << pathStr << std::endl;
     data = stbi_load(pathStr, &width, &height, &channels, 0);

@@ -6,11 +6,13 @@
 #include <memory>
 #include <cstdlib>
 #include <cmath>
+#include <random>
 #include <unordered_set>
 #include <glm/matrix.hpp>
 #include <glm/mat4x4.hpp> 
 #include <glm/gtc/matrix_transform.hpp>
 #include <math.h>
+class PerspectiveCamera;
 
 #include "soloud.h"
 #include "soloud_wav.h"
@@ -20,6 +22,8 @@
 #include "fs.h"
 #include "texture.h"
 #include "mesh.h"
+#include "camera.h"
+
 
 #include "resourceLoader.h"
 
@@ -89,6 +93,7 @@ public:
         initialized = true;
         windowsOpen++;
         glfwSetWindowUserPointer(window, this);
+        glfwSwapInterval(1);
         glfwSetWindowSizeCallback(window, [](GLFWwindow* window, int width, int height) {
             Window* self = (Window*)glfwGetWindowUserPointer(window);
             self->Width = width;
@@ -228,11 +233,16 @@ public:
     TexturedMesh* TextureMesh;
     glm::mat4 example = glm::mat4(1.0);
     glm::mat4 texture = glm::mat4(1.0);
+    std::unique_ptr <SpriteRenderer> Render;
+    std::shared_ptr <PerspectiveCamera> camera;
     DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {
         shaderLoader = std::make_unique<ShaderLoader>();
         textureLoader = std::make_unique<TextureLoader>();
         soloud = std::make_unique<SoLoud::Soloud>();
         soloud->init();
+        camera = std::make_shared<PerspectiveCamera>();
+        camera->position.x = 1;
+        camera->updateView();
         sl = std::make_unique<SoundLoader>(soloud);
         sl->load({
             {"resources/sounds/pickupCoin.wav", "coin"},
@@ -241,7 +251,8 @@ public:
 
         shaderLoader->load({
             {{"resources/shaders/image.vert", "resources/shaders/image.frag"}, "image"},
-            {{"resources/shaders/triangle.vert", "resources/shaders/triangle.frag"}, "triangle"}
+            {{"resources/shaders/triangle.vert", "resources/shaders/triangle.frag"}, "triangle"},
+            {{"resources/shaders/sprite.vert", "resources/shaders/sprite.frag"}, "sprite"}
         });
 
         textureLoader->load({
@@ -249,19 +260,23 @@ public:
             {"resources/images/bg_layer4.png", "bg"}
         });
 
+        glEnable(GL_DEPTH_TEST);
         auto imageShader = *(shaderLoader->get("image"));
         auto triangleShader = *(shaderLoader->get("triangle"));
-        auto woodTexture = *(textureLoader->get("bg"));
+        auto bgTexture = *(textureLoader->get("bg"));
+        auto woodTexture = *(textureLoader->get("wood"));
+
+        float zIndex = -0.000001f;
         
         TextureMesh = new TexturedMesh(
             {
-                0.5f,  0.5f, 0.0f,  // top right
-                0.5f, -0.5f, 0.0f,  // bottom right
-                -0.5f,  0.5f, 0.0f,  // top left 
+                0.5f, 0.5f,  // top right
+                0.5f, -0.5f,  // bottom right
+                -0.5f, 0.5f,  // top left 
                 // second triangle
-                0.5f, -0.5f, 0.0f,  // bottom right
-                -0.5f, -0.5f, 0.0f,  // bottom left
-                -0.5f,  0.5f, 0.0f   // top left
+                0.5f, -0.5f,  // bottom right
+                -0.5f, -0.5f,  // bottom left
+                -0.5f, 0.5f,   // top left
             },
             {
                 1.0f, 1.0f, 
@@ -273,18 +288,61 @@ public:
                 0.0f, 1.0f 
             },
             imageShader,
-            woodTexture
+            bgTexture
         );
 
-        exampleMesh = std::make_unique<Mesh>(
+        Render = std::make_unique<SpriteRenderer>(std::make_unique<TexturedMesh>(
             std::vector<float> {
-                0.5f,  0.5f, 0.0f,  // top right
-                0.5f, -0.5f, 0.0f,  // bottom right
-                -0.5f,  0.5f, 0.0f,  // top left 
+                0.5f, 0.5f,  // top right
+                0.5f, -0.5f,  // bottom right
+                -0.5f, 0.5f,  // top left 
                 // second triangle
-                0.5f, -0.5f, 0.0f,  // bottom right
-                -0.5f, -0.5f, 0.0f,  // bottom left
-                -0.5f,  0.5f, 0.0f   // top left
+                0.5f, -0.5f,  // bottom right
+                -0.5f, -0.5f,  // bottom left
+                -0.5f, 0.5f,   // top left
+            },
+            std::vector<float> {
+                1.0f, 1.0f,
+                1.0f, 0.0f,
+                0.0f, 1.0f,
+                // second triangle
+                1.0f, 0.0f,
+                0.0f, 0.0f,
+                0.0f, 1.0f
+            },
+            imageShader,
+            bgTexture
+        ), camera);
+
+        Render->add(1, bgTexture, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
+        Render->add(2, woodTexture, glm::translate(glm::mat4(1.0f), glm::vec3(-1.25f, 0.0f, 0.0f)));
+
+        std::random_device rd;
+        std::mt19937 gen{ rd() };
+        std::uniform_real_distribution<float> position { -10.0f, 10.0f };
+        std::uniform_real_distribution<float> normal { 0.1, 1.0f };
+        // std::normal_distribution normal {0.0f, 1.0f};
+
+        for (unsigned int i = 3; i < 500; ++i) {
+            float x = position(gen);
+            float y = position(gen);
+            float width = normal(gen);
+            float height = normal(gen);
+            bool texture = position(gen) > 0;
+            auto transform = glm::translate(glm::mat4(1.0f), glm::vec3(x, y, 0.0f));
+            transform = glm::scale(transform, glm::vec3(width, height, 0.0f));
+            Render->add(i, texture ? woodTexture : bgTexture, transform);
+        }
+
+        exampleMesh = std::make_unique<Shape>(
+            std::vector<float> {
+                0.5f,  0.5f,  // top right
+                0.5f, -0.5f,  // bottom right
+                -0.5f,  0.5f, // top left 
+                // second triangle
+                0.5f, -0.5f,  // bottom right
+                -0.5f, -0.5f, // bottom left
+                -0.5f,  0.5f, // top left
             },
             triangleShader
         );
@@ -292,24 +350,30 @@ public:
     virtual void draw() {
         float red = (float)mouseX / Width;
         glClearColor(0.1f, 0.4f, 0.5f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         float time = glfwGetTime();
-        example = glm::scale(glm::identity<glm::mat4>(), glm::vec3 (std::sin(time), std::sin(time), 0.0));
-        exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5)->setUniformMat4("model", example);
-        exampleMesh->draw();
-        texture = glm::translate(glm::identity<glm::mat4>(), glm::vec3(
-            Math::map(mouseX, 0.0f, Width, -1.0f, 1.0f), Math::map(mouseY, Height, 0.0f, -1.0f, 1.0f), 0.0f)
+
+        camera->updateProjectionMatrix(*this);
+        glm::vec4 mouse = glm::vec4(
+            Math::map(mouseX, 0.0f, Width, -1.0f, 1.0f), Math::map(mouseY, Height, 0.0f, -1.0f, 1.0f),
+            1.0f, 1.0f
         );
-        texture = glm::rotate(texture, std::sin(time) * (3.415927f), glm::vec3(0.0f, 0.0f, 1.0f));
-        TextureMesh->shader->use()->setUniformMat4("model", texture);
-        TextureMesh->draw();
+        example = glm::scale(glm::identity<glm::mat4>(), glm::vec3 (std::sin(time), std::sin(time), 0.0));
+        
+        exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5)->setUniformMat4("model", example);
+        camera->applyToShader(*(exampleMesh->shader));
+        exampleMesh->draw();
+        auto out = (glm::inverse(camera->projection * camera->view) * mouse);
+        auto& firstT = Render->entities[0].transform;
+        auto& secondT = Render->entities[1].transform;
+        firstT = glm::translate(glm::identity<glm::mat4>(), glm::vec3(out.x, out.y, 0.0f));
+        firstT = glm::rotate(firstT, std::sin(time) * (3.415927f), glm::vec3(0.0f, 0.0f, 1.0f));
+        secondT = glm::translate(glm::identity<glm::mat4>(), glm::vec3(-1.5f, 0.0f, 0.0f));
+        secondT = glm::scale(secondT, glm::vec3(std::sin(time), std::sin(time), 0.0f));
+        Render->Render();
     }
 
     virtual void update(GLFWwindow* window) {
-        if (getKeyDown(GLFW_KEY_W)) {
-            cout << "Forward!" << id << endl;
-        }
-
         if (getKeyReleased(GLFW_KEY_R)) {
             cout << "Reload" << id << endl;
         }
@@ -318,6 +382,26 @@ public:
             closeWindow();
         }
 
+        float speed = 0.01;
+
+        if (getKeyDown(GLFW_KEY_A)) {
+            camera->position.x += speed;
+        }
+
+        if (getKeyDown(GLFW_KEY_D)) {
+            camera->position.x -= speed;
+        }
+
+        if (getKeyDown(GLFW_KEY_W)) {
+            camera->position.y -= speed;
+        }
+
+        if (getKeyDown(GLFW_KEY_S)) {
+            camera->position.y += speed;
+        }
+
+        camera->updateView();
+
         if (getMouseReleased(GLFW_MOUSE_BUTTON_1)) {
             cout << "Click!" << endl;
             if (auto handle = sl->get("coin")) {
@@ -325,6 +409,8 @@ public:
                 soloud->play(*raw);
             }
         }
+
+        Render->Render();
 
         if (getMouseReleased(GLFW_MOUSE_BUTTON_2)) {
             cout << "Clock!" << endl;

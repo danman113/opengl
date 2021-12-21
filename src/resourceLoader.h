@@ -41,9 +41,9 @@ class ResourceLoader: public SharedResourceMap<ResourceType> {
 	virtual shared_ptr<ResourceType> fetch(path path) = 0;
 
 public:
-	ResourceLoader(): SharedResourceMap() {}
-
-	void load(const vector<pair<path, string>>& assetList) {
+	ResourceLoader::ResourceLoader() : SharedResourceMap() {}
+	
+	void ResourceLoader::load(const vector<pair<path, string>>& assetList) {
 		for (auto [path, key] : assetList) {
 			map.insert({ key, fetch(path) });
 		}
@@ -52,46 +52,20 @@ public:
 
 class SoundLoader : public ResourceLoader<SoLoud::Wav> {
 	shared_ptr<SoLoud::Soloud> soloud;
-	shared_ptr<SoLoud::Wav> fetch (path p) override {
-		auto wav = std::make_shared<SoLoud::Wav>();
-		auto pathStr = p.string();
-		const char* rawPath = pathStr.c_str();
-		wav->load(rawPath);
-		return wav;
-	}
+	shared_ptr<SoLoud::Wav> fetch(path p) override;
 public:
-	SoundLoader(shared_ptr<SoLoud::Soloud> soloudptr) : ResourceLoader(), soloud(soloudptr) {}
+	SoundLoader(shared_ptr<SoLoud::Soloud> soloudptr);
 };
 
 class TextureLoader : public ResourceLoader<Texture> {
-	shared_ptr<Texture> fetch(path p) override {
-		auto texture = std::make_shared<Texture>(p);
-		return texture;
-	}
+	shared_ptr<Texture> fetch(path p) override;
 public:
-	TextureLoader() : ResourceLoader() {}
+	TextureLoader();
 };
 
 class ShaderLoader : public SharedResourceMap<ShaderProgram> {
-	shared_ptr<ShaderProgram> fetch(path vertexPath, path fragPath) {
-		auto vertex = std::make_unique<Shader>(
-			FS::readFile(vertexPath),
-			GL_VERTEX_SHADER
-		);
-		auto fragment = std::make_unique<Shader>(
-			FS::readFile(fragPath),
-			GL_FRAGMENT_SHADER
-		);
-
-		auto shader = std::make_shared<ShaderProgram>(std::move(vertex), std::move(fragment));
-		return shader;
-	}
+	shared_ptr<ShaderProgram> fetch(path vertexPath, path fragPath);
 public:
-	ShaderLoader() : SharedResourceMap() {}
-	void load(const vector<pair<pair<path, path>, string>>& assetList) {
-		for (auto [paths, key] : assetList) {
-			auto [vertex, fragment] = paths;
-			map.insert({ key, fetch(vertex, fragment) });
-		}
-	}
+	ShaderLoader();
+	void load(const vector<pair<pair<path, path>, string>>& assetList);
 };

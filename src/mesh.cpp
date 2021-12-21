@@ -1,6 +1,6 @@
 #include "mesh.h"
 
-Mesh::Mesh(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s) : Positions(geometry), shader(s) {
+Mesh::Mesh(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s, int attrib_size = 3) : Positions(geometry), shader(s), ATTRIB_SIZE(attrib_size) {
     std::cout << "Constructing mesh" << std::endl;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -26,9 +26,11 @@ Mesh::~Mesh() {
     glDeleteBuffers(1, &VBO);
 }
 
+Shape::Shape(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s) : Mesh(geometry, s, 2) {}
+
+
 TexturedMesh::TexturedMesh(std::vector<float> geometry, std::vector<float> uv, std::shared_ptr<ShaderProgram> s, std::shared_ptr<Texture> t) :
-    Mesh(geometry, s), texture(t), UV(uv) {
-    texture->Init();
+    Shape(geometry, s), texture(t), UV(uv) {
     glGenVertexArrays(1, &textureVAO);
     glGenBuffers(1, &textureVBO);
     glBindVertexArray(VAO);
@@ -45,7 +47,15 @@ TexturedMesh::TexturedMesh(std::vector<float> geometry, std::vector<float> uv, s
 
 void TexturedMesh::draw() {
     shader->use();
+    texture->setActive();
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture->textureId);
     glBindVertexArray(textureVAO);
     Mesh::draw();
 }
+
+void TexturedMesh::setTexture(std::shared_ptr<Texture> t)
+{
+    texture = t;
+}
+

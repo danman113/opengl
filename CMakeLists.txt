@@ -23,7 +23,9 @@ add_executable(opengl
 	src/texture.cpp
 	src/mesh.cpp
 	src/utils.cpp
-	src/resourceLoader.h)
+	src/resourceLoader.cpp
+	src/camera.cpp
+)
 
 target_include_directories(opengl PUBLIC deps/stb/)
 target_include_directories(opengl PUBLIC deps/soloud/include)

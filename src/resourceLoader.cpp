@@ -1,19 +1,4 @@
-
-ResourceLoader::ResourceLoader() : SharedResourceMap() {}
-optional<shared_ptr<ResourceType>> SharedResourceMap::get(string key) {
-	auto resource = map.find(key);
-	if (resource != map.end()) {
-		return resource->second;
-	}
-	return {};
-};
-
-
-void ResourceLoader::load(const vector<pair<path, string>>& assetList) {
-	for (auto [path, key] : assetList) {
-		map.insert({ key, fetch(path) });
-	}
-};
+#include "resourceLoader.h"
 
 SoundLoader::SoundLoader(shared_ptr<SoLoud::Soloud> soloudptr) : ResourceLoader(), soloud(soloudptr) {}
 shared_ptr<SoLoud::Wav> SoundLoader::fetch(path p) {
@@ -28,6 +13,7 @@ shared_ptr<SoLoud::Wav> SoundLoader::fetch(path p) {
 TextureLoader::TextureLoader() : ResourceLoader() {}
 shared_ptr<Texture> TextureLoader::fetch(path p) {
 	auto texture = std::make_shared<Texture>(p);
+	texture->Init();
 	return texture;
 }
 
