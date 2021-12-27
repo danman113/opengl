@@ -57,8 +57,8 @@ public:
 	SoundLoader(shared_ptr<SoLoud::Soloud> soloudptr);
 };
 
-class TextureLoader : public ResourceLoader<Texture> {
-	shared_ptr<Texture> fetch(path p) override;
+class TextureLoader : public ResourceLoader<ImageTexture> {
+	shared_ptr<ImageTexture> fetch(path p) override;
 public:
 	TextureLoader();
 };

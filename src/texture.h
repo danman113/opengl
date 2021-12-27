@@ -4,17 +4,23 @@
 #include <iostream>
 
 struct Texture {
-    unsigned char* data;
     int width;
     int height;
-    int channels;
-    std::string path;
     unsigned int textureId;
+    int colorSpace = GL_RGB;
+    bool disableAliasing = false;
 
-    Texture(const std::filesystem::path& path);
-
-    void Init();
+    void Init(unsigned char* data);
     void setActive();
 
     ~Texture();
 };
+
+struct ImageTexture : public Texture {
+    int channels;
+    std::string path;
+    ImageTexture(const std::filesystem::path& path);
+    void Init();
+    ~ImageTexture();
+};
+

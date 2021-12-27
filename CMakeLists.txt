@@ -25,7 +25,7 @@ add_executable(opengl
 	src/utils.cpp
 	src/resourceLoader.cpp
 	src/camera.cpp
-)
+	src/text.cpp)
 
 target_include_directories(opengl PUBLIC deps/stb/)
 target_include_directories(opengl PUBLIC deps/soloud/include)

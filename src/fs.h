@@ -9,5 +9,6 @@
 namespace FS {
     using namespace std;
     string readFile(filesystem::path p);
+    std::vector<char> readFileAsBytes(filesystem::path p);
     void readWholeDirectory(filesystem::path p);
 }

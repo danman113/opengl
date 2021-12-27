@@ -23,6 +23,7 @@ class PerspectiveCamera;
 #include "texture.h"
 #include "mesh.h"
 #include "camera.h"
+#include "text.h"
 
 
 #include "resourceLoader.h"
@@ -38,6 +39,8 @@ class Window {
     static inline int windowsCreated = 0;
     static inline int activeWindow = -1;
     static inline bool initialized = false;
+    double lastTime = 0;
+    int nbFrames = 0;
 public:
     int id;
     string Name;
@@ -60,16 +63,10 @@ public:
             glfwSetErrorCallback([](int code, const char* msg) {
                 std::cout << "GLFW error code " << code << " \"" << msg << "\"" << std::endl;
             });
-#ifdef USE_GL_ES
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-            // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-            // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
-#else
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
             glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
             glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#endif
+            glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
         }
         window = glfwCreateWindow(Width, Height, Name.c_str(), NULL, NULL);
         if (window == NULL) {
@@ -78,6 +75,7 @@ public:
         }
         if (!initialized) {
             glfwMakeContextCurrent(window);
+            lastTime = glfwGetTime();
             if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
                 cout << "Failed to initialize GLAD" << endl;
                 return;
@@ -93,7 +91,7 @@ public:
         initialized = true;
         windowsOpen++;
         glfwSetWindowUserPointer(window, this);
-        glfwSwapInterval(1);
+        glfwSwapInterval(0);
         glfwSetWindowSizeCallback(window, [](GLFWwindow* window, int width, int height) {
             Window* self = (Window*)glfwGetWindowUserPointer(window);
             self->Width = width;
@@ -157,6 +155,13 @@ public:
     }
 
     void run() {
+        double currentTime = glfwGetTime();
+        nbFrames++;
+        if (currentTime - lastTime >= 1.0) {
+            std::cout << (1000.0 / double(nbFrames)) << " MS/Frame " << std::endl;
+            nbFrames = 0;
+            lastTime += 1.0;
+        }
         update(window);
         glfwGetCursorPos(window, &mouseX, &mouseY);
         draw();
@@ -235,6 +240,8 @@ public:
     glm::mat4 texture = glm::mat4(1.0);
     std::unique_ptr <SpriteRenderer> Render;
     std::shared_ptr <PerspectiveCamera> camera;
+    std::shared_ptr<Texture> FontTexture;
+
     DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {
         shaderLoader = std::make_unique<ShaderLoader>();
         textureLoader = std::make_unique<TextureLoader>();
@@ -249,10 +256,22 @@ public:
             {"resources/sounds/bookFlip2.ogg", "bookflip"}
         });
 
+        Font f { "resources/fonts/font.ttf" };
+        auto size = 60;
+        auto& bitmap = f.GenerateBitmap(size, "The quick brown fox");
+        f.GenerateImage(size, "The quick brown fox");
+        FontTexture = std::make_shared<Texture>();
+        FontTexture->width = bitmap.capacity() / size;
+        FontTexture->height = size;
+        FontTexture->colorSpace = GL_RED;
+        FontTexture->disableAliasing = true;
+        FontTexture->Init(bitmap.data());
+
         shaderLoader->load({
             {{"resources/shaders/image.vert", "resources/shaders/image.frag"}, "image"},
             {{"resources/shaders/triangle.vert", "resources/shaders/triangle.frag"}, "triangle"},
-            {{"resources/shaders/sprite.vert", "resources/shaders/sprite.frag"}, "sprite"}
+            {{"resources/shaders/sprite.vert", "resources/shaders/sprite.frag"}, "sprite"},
+            {{"resources/shaders/text.vert", "resources/shaders/text.frag"}, "text"}
         });
 
         textureLoader->load({
@@ -261,8 +280,13 @@ public:
         });
 
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_CULL_FACE);
+
         auto imageShader = *(shaderLoader->get("image"));
         auto triangleShader = *(shaderLoader->get("triangle"));
+        auto textShader = *(shaderLoader->get("text"));
         auto bgTexture = *(textureLoader->get("bg"));
         auto woodTexture = *(textureLoader->get("wood"));
 
@@ -287,8 +311,8 @@ public:
                 0.0f, 0.0f,
                 0.0f, 1.0f 
             },
-            imageShader,
-            bgTexture
+            textShader,
+            FontTexture
         );
 
         Render = std::make_unique<SpriteRenderer>(std::make_unique<TexturedMesh>(
@@ -319,7 +343,7 @@ public:
 
         std::random_device rd;
         std::mt19937 gen{ rd() };
-        std::uniform_real_distribution<float> position { -10.0f, 10.0f };
+        std::uniform_real_distribution<float> position { -100.0f, 100.0f };
         std::uniform_real_distribution<float> normal { 0.1, 1.0f };
         // std::normal_distribution normal {0.0f, 1.0f};
 
@@ -329,8 +353,8 @@ public:
             float width = normal(gen);
             float height = normal(gen);
             bool texture = position(gen) > 0;
-            auto transform = glm::translate(glm::mat4(1.0f), glm::vec3(x, y, 0.0f));
-            transform = glm::scale(transform, glm::vec3(width, height, 0.0f));
+            auto transform = glm::translate(glm::mat4(1.0f), glm::vec3(x, y, 1.0f));
+            transform = glm::scale(transform, glm::vec3(width, height, 1.0f));
             Render->add(i, texture ? woodTexture : bgTexture, transform);
         }
 
@@ -358,19 +382,26 @@ public:
             Math::map(mouseX, 0.0f, Width, -1.0f, 1.0f), Math::map(mouseY, Height, 0.0f, -1.0f, 1.0f),
             1.0f, 1.0f
         );
-        example = glm::scale(glm::identity<glm::mat4>(), glm::vec3 (std::sin(time), std::sin(time), 0.0));
+        example = glm::scale(glm::identity<glm::mat4>(), glm::vec3(std::sin(time), std::sin(time), 5.0));
         
         exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5)->setUniformMat4("model", example);
         camera->applyToShader(*(exampleMesh->shader));
-        exampleMesh->draw();
+        //exampleMesh->draw();
+        TextureMesh->shader->use()
+            ->setUniform4f("color", red, 0.3, 0.4, 1.0)
+            ->setUniformMat4("model", glm::scale(glm::identity<glm::mat4>(), glm::vec3(5.0f, 1.0f, 5.0)));
+        camera->applyToShader(*(TextureMesh->shader));
         auto out = (glm::inverse(camera->projection * camera->view) * mouse);
         auto& firstT = Render->entities[0].transform;
         auto& secondT = Render->entities[1].transform;
-        firstT = glm::translate(glm::identity<glm::mat4>(), glm::vec3(out.x, out.y, 0.0f));
+        firstT = glm::translate(glm::identity<glm::mat4>(), glm::vec3(out.x, out.y, 1.0f));
         firstT = glm::rotate(firstT, std::sin(time) * (3.415927f), glm::vec3(0.0f, 0.0f, 1.0f));
-        secondT = glm::translate(glm::identity<glm::mat4>(), glm::vec3(-1.5f, 0.0f, 0.0f));
-        secondT = glm::scale(secondT, glm::vec3(std::sin(time), std::sin(time), 0.0f));
+        secondT = glm::translate(glm::identity<glm::mat4>(), glm::vec3(-1.5f, 0.0f, 1.0f));
+        secondT = glm::scale(secondT, glm::vec3(std::sin(time), std::sin(time), 1.0f));
+        //glDisable(GL_DEPTH_TEST);
+        //glEnable(GL_DEPTH_TEST);
         Render->Render();
+        TextureMesh->draw();
     }
 
     virtual void update(GLFWwindow* window) {
@@ -393,11 +424,11 @@ public:
         }
 
         if (getKeyDown(GLFW_KEY_W)) {
-            camera->position.y -= speed;
+            camera->position.y += speed;
         }
 
         if (getKeyDown(GLFW_KEY_S)) {
-            camera->position.y += speed;
+            camera->position.y -= speed;
         }
 
         camera->updateView();

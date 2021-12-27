@@ -11,8 +11,8 @@ shared_ptr<SoLoud::Wav> SoundLoader::fetch(path p) {
 
 
 TextureLoader::TextureLoader() : ResourceLoader() {}
-shared_ptr<Texture> TextureLoader::fetch(path p) {
-	auto texture = std::make_shared<Texture>(p);
+shared_ptr<ImageTexture> TextureLoader::fetch(path p) {
+	auto texture = std::make_shared<ImageTexture>(p);
 	texture->Init();
 	return texture;
 }
