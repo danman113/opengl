@@ -12,7 +12,7 @@ struct Mesh {
     unsigned int VAO;
     int ATTRIB_SIZE;
     std::shared_ptr<ShaderProgram> shader;
-    Mesh(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s, int attrib_size);
+    Mesh(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s, int attrib_size, int drawType);
 
     virtual void draw();
     ~Mesh();

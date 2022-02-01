@@ -3,9 +3,13 @@
 #include <filesystem>
 #include <iostream>
 #include <unordered_map>
+#include <algorithm>
+#include <stdexcept>
 #include "fs.h"
+#include "texture.h"
 
 #include "stb_image_write.h"
+#include "stb_rect_pack.h"
 #include "stb_truetype.h"
 
 struct CharacterCoordinates {
@@ -17,7 +21,7 @@ struct CharacterCoordinates {
 
 
 class Font;
-class FontFace {
+class BitmapTextRenderer {
 	std::size_t bufferSize;
 public:
 	Font* font;
@@ -27,7 +31,7 @@ public:
 	float scale;
 	int ascent, descent, lineGap;
 	int cursor = 0;
-	FontFace(unsigned int _height, Font* _font, std::string _text);
+	BitmapTextRenderer(unsigned int _height, Font* _font, std::string _text);
 
 	CharacterCoordinates& getBB(std::size_t i);
 
@@ -42,11 +46,47 @@ public:
 	void outImage();
 };
 
-class Font {
-	friend class FontFace;
-	std::unordered_map<unsigned int, FontFace> fontMap;
-	stbtt_fontinfo info;
+
+using FontRange = std::pair<uint64_t, uint64_t>;
+class FontAtlas {
+	int size;
+	FontRange range;
+	int bitmapWidth = 0xFF;
+	int bitmapHeight = 0xFF;
+	int padding = 1;
+	int oversamplingRate = 2;
+	stbtt_pack_context packContext;
+	std::vector<stbtt_packedchar> characterData;
+	Texture* texture = nullptr;
 public:
+	Font* font;
+	static FontRange GetRangeFromAlphabet(std::string& alphabet) {
+		uint64_t min = 0xFFFFFFFF;
+		uint64_t max = 0;
+		for (const auto& c : alphabet) {
+			min = std::min<uint64_t> (c, min);
+			max = std::max<uint64_t> (c, max);
+		}
+		return std::make_pair(min, max);
+	};
+
+	FontAtlas(Font* _font, int _size, FontRange f);
+
+	std::vector<unsigned char> generateFont(std::filesystem::path p);
+
+	Texture* generateTexture(std::filesystem::path p);
+
+	stbtt_aligned_quad renderChar(uint64_t);
+
+	void outImage(std::filesystem::path p);
+};
+
+class Font {
+	friend class BitmapTextRenderer;
+	std::unordered_map<unsigned int, BitmapTextRenderer> fontMap;
+public:
+	stbtt_fontinfo info;
+	std::vector<char> buffer;
 	Font(std::filesystem::path p);
 
 	void GenerateImage(unsigned int pixelSize, std::string text);

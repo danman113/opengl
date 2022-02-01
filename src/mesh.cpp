@@ -1,14 +1,13 @@
 #include "mesh.h"
 
-Mesh::Mesh(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s, int attrib_size = 3) : Positions(geometry), shader(s), ATTRIB_SIZE(attrib_size) {
+Mesh::Mesh(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s, int attrib_size = 3, int drawType = GL_STATIC_DRAW) : Positions(geometry), shader(s), ATTRIB_SIZE(attrib_size) {
     std::cout << "Constructing mesh" << std::endl;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * Positions.size(), Positions.data(), GL_STATIC_DRAW);
-
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * Positions.size(), Positions.data(), drawType);
     glVertexAttribPointer(0, ATTRIB_SIZE, GL_FLOAT, GL_FALSE, ATTRIB_SIZE * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
@@ -21,6 +20,7 @@ void Mesh::draw() {
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, Positions.size() / ATTRIB_SIZE);
 }
+
 Mesh::~Mesh() {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);

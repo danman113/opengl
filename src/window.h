@@ -66,7 +66,6 @@ public:
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
             glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
             glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-            glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
         }
         window = glfwCreateWindow(Width, Height, Name.c_str(), NULL, NULL);
         if (window == NULL) {
@@ -241,6 +240,7 @@ public:
     std::unique_ptr <SpriteRenderer> Render;
     std::shared_ptr <PerspectiveCamera> camera;
     std::shared_ptr<Texture> FontTexture;
+    std::shared_ptr<Texture> TextTexture;
 
     DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {
         shaderLoader = std::make_unique<ShaderLoader>();
@@ -258,8 +258,12 @@ public:
 
         Font f { "resources/fonts/font.ttf" };
         auto size = 60;
+        FontAtlas atlas { &f, size, FontAtlas::GetRangeFromAlphabet(std::string("!~"))};
+        atlas.outImage("resources/fonts/font.ttf");
+        auto t = atlas.generateTexture("resources/fonts/font.ttf");
+        auto AQuad = atlas.renderChar('B');
+        TextTexture = std::shared_ptr<Texture>(t);
         auto& bitmap = f.GenerateBitmap(size, "The quick brown fox");
-        f.GenerateImage(size, "The quick brown fox");
         FontTexture = std::make_shared<Texture>();
         FontTexture->width = bitmap.capacity() / size;
         FontTexture->height = size;
@@ -303,16 +307,16 @@ public:
                 -0.5f, 0.5f,   // top left
             },
             {
-                1.0f, 1.0f, 
-                1.0f, 0.0f,
-                0.0f, 1.0f,
+                AQuad.s1, AQuad.t1,
+                AQuad.s1, AQuad.t0,
+                AQuad.s0, AQuad.t1,
                 // second triangle
-                1.0f, 0.0f,
-                0.0f, 0.0f,
-                0.0f, 1.0f 
+                AQuad.s1, AQuad.t0,
+                AQuad.s0, AQuad.t0,
+                AQuad.s0, AQuad.t1
             },
             textShader,
-            FontTexture
+            TextTexture
         );
 
         Render = std::make_unique<SpriteRenderer>(std::make_unique<TexturedMesh>(
@@ -387,10 +391,12 @@ public:
         exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5)->setUniformMat4("model", example);
         camera->applyToShader(*(exampleMesh->shader));
         //exampleMesh->draw();
+        float val = TextureMesh->texture->width / TextureMesh->texture->height;
         TextureMesh->shader->use()
             ->setUniform4f("color", red, 0.3, 0.4, 1.0)
-            ->setUniformMat4("model", glm::scale(glm::identity<glm::mat4>(), glm::vec3(5.0f, 1.0f, 5.0)));
+            ->setUniformMat4("model", glm::scale(glm::identity<glm::mat4>(), glm::vec3(1.0f, 1.0f, 5.0f)));
         camera->applyToShader(*(TextureMesh->shader));
+
         auto out = (glm::inverse(camera->projection * camera->view) * mouse);
         auto& firstT = Render->entities[0].transform;
         auto& secondT = Render->entities[1].transform;
