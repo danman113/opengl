@@ -13,13 +13,13 @@ struct Mesh {
     int ATTRIB_SIZE;
     std::shared_ptr<ShaderProgram> shader;
     Mesh(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s, int attrib_size, int drawType);
-
+    void updatePositions();
     virtual void draw();
     ~Mesh();
 };
 
 struct Shape : public Mesh {
-    Shape(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s);
+    Shape(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s, int drawType);
 };
 
 struct TexturedMesh : public Shape {
@@ -28,7 +28,8 @@ struct TexturedMesh : public Shape {
     unsigned int textureVBO;
     unsigned int textureVAO;
     static const int UV_SIZE = 2;
-    TexturedMesh(std::vector<float> geometry, std::vector<float> uv, std::shared_ptr<ShaderProgram> s, std::shared_ptr<Texture> t);
+    TexturedMesh(std::vector<float> geometry, std::vector<float> uv, std::shared_ptr<ShaderProgram> s, std::shared_ptr<Texture> t, int drawType);
+    void updateUVs();
     void setTexture(std::shared_ptr<Texture> t);
     virtual void draw();
 };

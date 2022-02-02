@@ -63,14 +63,13 @@ Texture* FontAtlas::generateTexture(std::filesystem::path p) {
 	return texture;
 };
 
-stbtt_aligned_quad FontAtlas::renderChar(uint64_t c) {
+stbtt_aligned_quad FontAtlas::renderChar(uint64_t c, float* x, float* y) {
 	if (texture == nullptr)
 		throw std::runtime_error("Texture not generated");
 	auto [min, max] = range;
 	int index = c - min;
-	float x = 0, y = 0;
 	stbtt_aligned_quad quad;
-	stbtt_GetPackedQuad(characterData.data(), bitmapWidth, bitmapHeight, index, &x, &y, &quad, true);
+	stbtt_GetPackedQuad(characterData.data(), bitmapWidth, bitmapHeight, index, x, y, &quad, true);
 	return quad;
 };
 

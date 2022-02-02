@@ -49,7 +49,6 @@ public:
 
 using FontRange = std::pair<uint64_t, uint64_t>;
 class FontAtlas {
-	int size;
 	FontRange range;
 	int bitmapWidth = 0xFF;
 	int bitmapHeight = 0xFF;
@@ -59,6 +58,7 @@ class FontAtlas {
 	std::vector<stbtt_packedchar> characterData;
 	Texture* texture = nullptr;
 public:
+	int size;
 	Font* font;
 	static FontRange GetRangeFromAlphabet(std::string& alphabet) {
 		uint64_t min = 0xFFFFFFFF;
@@ -76,7 +76,7 @@ public:
 
 	Texture* generateTexture(std::filesystem::path p);
 
-	stbtt_aligned_quad renderChar(uint64_t);
+	stbtt_aligned_quad renderChar(uint64_t c, float* x, float* y);
 
 	void outImage(std::filesystem::path p);
 };
