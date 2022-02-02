@@ -234,12 +234,11 @@ public:
     std::unique_ptr<SoundLoader> sl;
     std::unique_ptr<ShaderLoader> shaderLoader;
     std::unique_ptr<TextureLoader> textureLoader;
-    TexturedMesh* TextureMesh;
     glm::mat4 example = glm::mat4(1.0);
     glm::mat4 texture = glm::mat4(1.0);
     std::unique_ptr <SpriteRenderer> Render;
+    std::unique_ptr <TextRenderer> Texter;
     std::shared_ptr <PerspectiveCamera> camera;
-    std::shared_ptr<Texture> FontTexture;
     std::shared_ptr<Texture> TextTexture;
 
     DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {
@@ -258,18 +257,10 @@ public:
 
         Font f { "resources/fonts/font.ttf" };
         auto size = 60;
-        FontAtlas atlas { &f, size, FontAtlas::GetRangeFromAlphabet(std::string("!~"))};
-        atlas.outImage("resources/fonts/font.ttf");
-        auto t = atlas.generateTexture("resources/fonts/font.ttf");
-        auto AQuad = atlas.renderChar('B');
+        auto atlas = std::make_shared<FontAtlas>(&f, size, FontAtlas::GetRangeFromAlphabet(std::string("!~")));
+        atlas->outImage("resources/fonts/font.ttf");
+        auto t = atlas->generateTexture("resources/fonts/font.ttf");
         TextTexture = std::shared_ptr<Texture>(t);
-        auto& bitmap = f.GenerateBitmap(size, "The quick brown fox");
-        FontTexture = std::make_shared<Texture>();
-        FontTexture->width = bitmap.capacity() / size;
-        FontTexture->height = size;
-        FontTexture->colorSpace = GL_RED;
-        FontTexture->disableAliasing = true;
-        FontTexture->Init(bitmap.data());
 
         shaderLoader->load({
             {{"resources/shaders/image.vert", "resources/shaders/image.frag"}, "image"},
@@ -295,28 +286,33 @@ public:
         auto woodTexture = *(textureLoader->get("wood"));
 
         float zIndex = -0.000001f;
-        
-        TextureMesh = new TexturedMesh(
-            {
-                0.5f, 0.5f,  // top right
-                0.5f, -0.5f,  // bottom right
-                -0.5f, 0.5f,  // top left 
-                // second triangle
-                0.5f, -0.5f,  // bottom right
-                -0.5f, -0.5f,  // bottom left
-                -0.5f, 0.5f,   // top left
-            },
-            {
-                AQuad.s1, AQuad.t1,
-                AQuad.s1, AQuad.t0,
-                AQuad.s0, AQuad.t1,
-                // second triangle
-                AQuad.s1, AQuad.t0,
-                AQuad.s0, AQuad.t0,
-                AQuad.s0, AQuad.t1
-            },
-            textShader,
-            TextTexture
+
+        Texter = std::make_unique<TextRenderer>(
+            std::make_unique<TexturedMesh>(
+                std::vector<float> {
+                    0.5f, 0.5f,  // top right
+                    0.5f, -0.5f,  // bottom right
+                    -0.5f, 0.5f,  // top left 
+                    // second triangle
+                    0.5f, -0.5f,  // bottom right
+                    -0.5f, -0.5f,  // bottom left
+                    -0.5f, 0.5f,   // top left
+                },
+                std::vector<float> {
+                    1.0f, 1.0f,
+                    1.0f, 0.0f,
+                    0.0f, 1.0f,
+                    // second triangle
+                    1.0f, 0.0f,
+                    0.0f, 0.0f,
+                    0.0f, 1.0f
+                },
+                textShader,
+                TextTexture,
+                GL_STATIC_DRAW
+            ),
+            atlas,
+            camera
         );
 
         Render = std::make_unique<SpriteRenderer>(std::make_unique<TexturedMesh>(
@@ -339,11 +335,14 @@ public:
                 0.0f, 1.0f
             },
             imageShader,
-            bgTexture
+            bgTexture,
+            GL_STATIC_DRAW
         ), camera);
 
         Render->add(1, bgTexture, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
         Render->add(2, woodTexture, glm::translate(glm::mat4(1.0f), glm::vec3(-1.25f, 0.0f, 0.0f)));
+
+        Texter->add(400, "HELLO WORLD IN ALL CAPS", glm::mat4(1.0f));
 
         std::random_device rd;
         std::mt19937 gen{ rd() };
@@ -372,7 +371,8 @@ public:
                 -0.5f, -0.5f, // bottom left
                 -0.5f,  0.5f, // top left
             },
-            triangleShader
+            triangleShader,
+            GL_STATIC_DRAW
         );
     };
     virtual void draw() {
@@ -390,12 +390,6 @@ public:
         
         exampleMesh->shader->use()->setUniform4f("color", red, 0.3, 0.4, 0.5)->setUniformMat4("model", example);
         camera->applyToShader(*(exampleMesh->shader));
-        //exampleMesh->draw();
-        float val = TextureMesh->texture->width / TextureMesh->texture->height;
-        TextureMesh->shader->use()
-            ->setUniform4f("color", red, 0.3, 0.4, 1.0)
-            ->setUniformMat4("model", glm::scale(glm::identity<glm::mat4>(), glm::vec3(1.0f, 1.0f, 5.0f)));
-        camera->applyToShader(*(TextureMesh->shader));
 
         auto out = (glm::inverse(camera->projection * camera->view) * mouse);
         auto& firstT = Render->entities[0].transform;
@@ -404,10 +398,14 @@ public:
         firstT = glm::rotate(firstT, std::sin(time) * (3.415927f), glm::vec3(0.0f, 0.0f, 1.0f));
         secondT = glm::translate(glm::identity<glm::mat4>(), glm::vec3(-1.5f, 0.0f, 1.0f));
         secondT = glm::scale(secondT, glm::vec3(std::sin(time), std::sin(time), 1.0f));
+        auto& Text = Texter->entities[0].transform;
+        Text = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 500.0f));
+        Text = glm::scale(Text, glm::vec3(std::cos(time), std::cos(time), 1.0f));
+
         //glDisable(GL_DEPTH_TEST);
         //glEnable(GL_DEPTH_TEST);
         Render->Render();
-        TextureMesh->draw();
+        Texter->Render();
     }
 
     virtual void update(GLFWwindow* window) {

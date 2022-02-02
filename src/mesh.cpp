@@ -15,6 +15,11 @@ Mesh::Mesh(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s, int at
     glBindVertexArray(0);
 }
 
+void Mesh::updatePositions() {
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * Positions.size(), Positions.data());
+}
+
 void Mesh::draw() {
     shader->use();
     glBindVertexArray(VAO);
@@ -26,11 +31,16 @@ Mesh::~Mesh() {
     glDeleteBuffers(1, &VBO);
 }
 
-Shape::Shape(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s) : Mesh(geometry, s, 2) {}
+Shape::Shape(std::vector<float> geometry, std::shared_ptr<ShaderProgram> s, int drawType = GL_STATIC_DRAW) : Mesh(geometry, s, 2, drawType) {}
 
 
-TexturedMesh::TexturedMesh(std::vector<float> geometry, std::vector<float> uv, std::shared_ptr<ShaderProgram> s, std::shared_ptr<Texture> t) :
-    Shape(geometry, s), texture(t), UV(uv) {
+TexturedMesh::TexturedMesh(
+    std::vector<float> geometry,
+    std::vector<float> uv,
+    std::shared_ptr<ShaderProgram> s,
+    std::shared_ptr<Texture> t,
+    int drawType = GL_STATIC_DRAW
+) : Shape(geometry, s, drawType), texture(t), UV(uv) {
     glGenVertexArrays(1, &textureVAO);
     glGenBuffers(1, &textureVBO);
     glBindVertexArray(VAO);
@@ -43,6 +53,11 @@ TexturedMesh::TexturedMesh(std::vector<float> geometry, std::vector<float> uv, s
 
     glBindBuffer(GL_ARRAY_BUFFER, 1);
     glBindVertexArray(1);
+}
+
+void TexturedMesh::updateUVs() {
+    glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * UV.size(), UV.data());
 }
 
 void TexturedMesh::draw() {
