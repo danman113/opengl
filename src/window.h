@@ -240,6 +240,7 @@ public:
     std::unique_ptr <TextRenderer> Texter;
     std::shared_ptr <PerspectiveCamera> camera;
     std::shared_ptr<Texture> TextTexture;
+    bool animate = true;
 
     DefaultWindow(string windowName, unsigned int w, unsigned int h) : Window(windowName, w, h) {
         shaderLoader = std::make_unique<ShaderLoader>();
@@ -257,7 +258,7 @@ public:
 
         Font f { "resources/fonts/font.ttf" };
         auto size = 60;
-        auto atlas = std::make_shared<FontAtlas>(&f, size, FontAtlas::GetRangeFromAlphabet(std::string("!~")));
+        auto atlas = std::make_shared<FontAtlas>(&f, size, FontAtlas::GetRangeFromAlphabet(std::string("!~ ")));
         atlas->outImage("resources/fonts/font.ttf");
         auto t = atlas->generateTexture("resources/fonts/font.ttf");
         TextTexture = std::shared_ptr<Texture>(t);
@@ -275,8 +276,11 @@ public:
         });
 
         glEnable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        if (animate) {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
+        
         glEnable(GL_CULL_FACE);
 
         auto imageShader = *(shaderLoader->get("image"));
@@ -342,7 +346,7 @@ public:
         Render->add(1, bgTexture, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
         Render->add(2, woodTexture, glm::translate(glm::mat4(1.0f), glm::vec3(-1.25f, 0.0f, 0.0f)));
 
-        Texter->add(400, "HELLO WORLD IN ALL CAPS", glm::mat4(1.0f));
+        Texter->add(400, "Hello World pointer \n This is a better thing", glm::mat4(1.0f));
 
         std::random_device rd;
         std::mt19937 gen{ rd() };
@@ -392,18 +396,18 @@ public:
         camera->applyToShader(*(exampleMesh->shader));
 
         auto out = (glm::inverse(camera->projection * camera->view) * mouse);
-        auto& firstT = Render->entities[0].transform;
-        auto& secondT = Render->entities[1].transform;
-        firstT = glm::translate(glm::identity<glm::mat4>(), glm::vec3(out.x, out.y, 1.0f));
-        firstT = glm::rotate(firstT, std::sin(time) * (3.415927f), glm::vec3(0.0f, 0.0f, 1.0f));
-        secondT = glm::translate(glm::identity<glm::mat4>(), glm::vec3(-1.5f, 0.0f, 1.0f));
-        secondT = glm::scale(secondT, glm::vec3(std::sin(time), std::sin(time), 1.0f));
-        auto& Text = Texter->entities[0].transform;
-        Text = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 500.0f));
-        Text = glm::scale(Text, glm::vec3(std::cos(time), std::cos(time), 1.0f));
+        if (animate) {
+            auto& firstT = Render->entities[0].transform;
+            auto& secondT = Render->entities[1].transform;
+            firstT = glm::translate(glm::identity<glm::mat4>(), glm::vec3(out.x, out.y, 1.0f));
+            firstT = glm::rotate(firstT, std::sin(time) * (3.415927f), glm::vec3(0.0f, 0.0f, 1.0f));
+            secondT = glm::translate(glm::identity<glm::mat4>(), glm::vec3(-1.5f, 0.0f, 1.0f));
+            secondT = glm::scale(secondT, glm::vec3(std::sin(time), std::sin(time), 1.0f));
+            auto& Text = Texter->entities[0].transform;
+            Text = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 500.0f));
+            Text = glm::scale(Text, glm::vec3(std::cos(time), std::cos(time), 1.0f));
+        }
 
-        //glDisable(GL_DEPTH_TEST);
-        //glEnable(GL_DEPTH_TEST);
         Render->Render();
         Texter->Render();
     }
@@ -433,6 +437,10 @@ public:
 
         if (getKeyDown(GLFW_KEY_S)) {
             camera->position.y -= speed;
+        }
+
+        if (getKeyReleased(GLFW_KEY_SPACE)) {
+            animate = !animate;
         }
 
         camera->updateView();
