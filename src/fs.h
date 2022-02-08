@@ -4,6 +4,7 @@
 #include <fstream>
 #include <filesystem>
 #include <memory>
+#include <vector>
 #include <unordered_set>
 
 namespace FS {

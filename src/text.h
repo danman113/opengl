@@ -60,7 +60,7 @@ class FontAtlas {
 public:
 	int size;
 	Font* font;
-	static FontRange GetRangeFromAlphabet(std::string& alphabet) {
+	static FontRange GetRangeFromAlphabet(std::string const& alphabet) {
 		uint64_t min = 0xFFFFFFFF;
 		uint64_t max = 0;
 		for (const auto& c : alphabet) {

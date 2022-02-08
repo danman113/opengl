@@ -258,7 +258,8 @@ public:
 
         Font f { "resources/fonts/font.ttf" };
         auto size = 60;
-        auto atlas = std::make_shared<FontAtlas>(&f, size, FontAtlas::GetRangeFromAlphabet(std::string("!~ ")));
+        auto range = FontAtlas::GetRangeFromAlphabet(std::string("!~ "));
+        auto atlas = std::make_shared<FontAtlas>(&f, size, range);
         atlas->outImage("resources/fonts/font.ttf");
         auto t = atlas->generateTexture("resources/fonts/font.ttf");
         TextTexture = std::shared_ptr<Texture>(t);

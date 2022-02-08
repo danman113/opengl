@@ -26,6 +26,7 @@ using std::optional;
 
 template <typename ResourceType>
 struct SharedResourceMap {
+	SharedResourceMap() = default;
 	unordered_map<string, shared_ptr<ResourceType>> map;
 	optional<shared_ptr<ResourceType>> get(string key) {
 		auto resource = map.find(key);
@@ -41,11 +42,11 @@ class ResourceLoader: public SharedResourceMap<ResourceType> {
 	virtual shared_ptr<ResourceType> fetch(path path) = 0;
 
 public:
-	ResourceLoader::ResourceLoader() : SharedResourceMap() {}
+	ResourceLoader() : SharedResourceMap<ResourceType>() {}
 	
-	void ResourceLoader::load(const vector<pair<path, string>>& assetList) {
+	void load(const vector<pair<path, string>>& assetList) {
 		for (auto [path, key] : assetList) {
-			map.insert({ key, fetch(path) });
+			this->map.insert({ key, fetch(path) });
 		}
 	};
 };
