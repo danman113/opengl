@@ -237,7 +237,7 @@ public:
     glm::mat4 example = glm::mat4(1.0);
     glm::mat4 texture = glm::mat4(1.0);
     std::unique_ptr <SpriteRenderer> Render;
-    std::unique_ptr <TextRenderer> Texter;
+    std::unique_ptr <TypeWriterRenderer> Texter;
     std::shared_ptr <PerspectiveCamera> camera;
     std::shared_ptr<Texture> TextTexture;
     bool animate = true;
@@ -292,7 +292,7 @@ public:
 
         float zIndex = -0.000001f;
 
-        Texter = std::make_unique<TextRenderer>(
+        Texter = std::make_unique<TypeWriterRenderer>(
             std::make_unique<TexturedMesh>(
                 std::vector<float> {
                     0.5f, 0.5f,  // top right
