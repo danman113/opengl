@@ -56,23 +56,18 @@ struct TextLine {
     RenderableId id;
     std::string text;
     glm::mat4 transform;
-    TextLine(RenderableId _id, std::string _text, glm::mat4 _transform):
-        id(_id), text(_text), transform(_transform) {}
-};
-
-struct TextRenderer : public Renderer<TextLine> {
-    std::unique_ptr<TexturedMesh> characterMesh;
+    std::vector<std::vector<float>> UVs;
+    std::vector<std::vector<float>> Positions;
     std::shared_ptr<FontAtlas> font;
-    std::shared_ptr<PerspectiveCamera> camera;
-    TextRenderer(std::unique_ptr<TexturedMesh> m, std::shared_ptr<FontAtlas> f, std::shared_ptr<PerspectiveCamera> c) : characterMesh(std::move(m)), font(f), camera(c) {}
-    virtual void DrawEntity(const TextLine& textLine) {
-        auto zIndex = textLine.transform[3][2];
-        auto pos = glm::mat4(textLine.transform);
+    TextLine(RenderableId _id, std::string _text, glm::mat4 _transform, std::shared_ptr<FontAtlas> f):
+        id(_id), text(_text), transform(_transform), font(f), UVs(), Positions() {
+        UVs.reserve(_text.length());
+        Positions.reserve(_text.length());
         float x = 0, y = 0;
         float lastX = 0;
-        for (auto& ch : textLine.text) {
+        for (auto& ch : _text) {
             auto glyphData = font->renderChar(ch, &x, &y);
-            characterMesh->UV = {
+            UVs.push_back({
                 glyphData.s1, glyphData.t1,
                 glyphData.s1, glyphData.t0,
                 glyphData.s0, glyphData.t1,
@@ -80,10 +75,10 @@ struct TextRenderer : public Renderer<TextLine> {
                 glyphData.s1, glyphData.t0,
                 glyphData.s0, glyphData.t0,
                 glyphData.s0, glyphData.t1
-            };
+            });
             float divisor = font->size;
-            characterMesh->updateUVs();
-            characterMesh->Positions = {
+
+            Positions.push_back({
                 glyphData.x1 / divisor, glyphData.y1 / divisor,
                 glyphData.x1 / divisor, glyphData.y0 / divisor,
                 glyphData.x0 / divisor, glyphData.y1 / divisor,
@@ -91,7 +86,31 @@ struct TextRenderer : public Renderer<TextLine> {
                 glyphData.x1 / divisor, glyphData.y0 / divisor,
                 glyphData.x0 / divisor, glyphData.y0 / divisor,
                 glyphData.x0 / divisor, glyphData.y1 / divisor
-            };
+            });
+
+        }
+    }
+};
+
+struct TextRenderer : public Renderer<TextLine> {
+    std::unique_ptr<TexturedMesh> characterMesh;
+    std::shared_ptr<FontAtlas> font;
+    std::shared_ptr<PerspectiveCamera> camera;
+    TextRenderer(std::unique_ptr<TexturedMesh> m, std::shared_ptr<FontAtlas> f, std::shared_ptr<PerspectiveCamera> c) : characterMesh(std::move(m)), font(f), camera(c) {}
+    
+    virtual void DrawEntity(const TextLine& textLine) {
+        auto zIndex = textLine.transform[3][2];
+        auto pos = glm::mat4(textLine.transform);
+        float x = 0, y = 0;
+        float lastX = 0;
+        for (int i = 0; i < textLine.text.length(); ++i) {
+            auto& ch = textLine.text[i];
+            auto glyphData = font->renderChar(ch, &x, &y);
+            auto a = textLine.UVs[i];
+            characterMesh->UV = a;
+            characterMesh->updateUVs();
+            auto b = textLine.Positions[i];
+            characterMesh->Positions = b;
             characterMesh->updatePositions();
             characterMesh->shader->use()
                 ->setUniform1f("zIndex", zIndex)
@@ -100,5 +119,9 @@ struct TextRenderer : public Renderer<TextLine> {
             camera->applyToShader(*(characterMesh->shader));
             characterMesh->draw();
         }
+    }
+    template<typename ... Ts>
+    void add(Ts ... args) {
+        entities.push_back(TextLine(args..., font));
     }
 };
